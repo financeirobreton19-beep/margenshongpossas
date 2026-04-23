@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Sistema Breton | Margens & Gestão Profissional</title>
+    <!-- Firebase SDKs (versão compatível) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #eef2f7;
+            padding: 16px 12px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+            padding: 16px 18px 28px;
+        }
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .title-area h1 { font-size: 1.6rem; color: #0a2b44; }
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .calc-btn, .config-btn {
+            background: #f0f2f5;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: 1px solid #cddae9;
+            transition: 0.2s;
+        }
+        .calc-btn:hover, .config-btn:hover { background: #e2e8f0; }
+        .toast-msg {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1a6d3c;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            animation: fadeInOut 2s ease-in-out;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(20px); }
+            15% { opacity: 1; transform: translateY(0); }
+            85% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(20px); }
+        }
+        .tabs {
+            display: flex;
+            gap: 6px;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 18px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #5a6e85;
+            cursor: pointer;
+            border-radius: 30px 30px 0 0;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            color: #1a6d3c;
+            background: #eef6f0;
+            border-bottom: 3px solid #1a6d3c;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .config-panel {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 12px 20px;
+            margin-bottom: 24px;
+            border: 1px solid #cbdde9;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+        .config-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 5px 16px;
+            border-radius: 40px;
+        }
+        .config-item input {
+            width: 80px;
+            padding: 6px;
+            border-radius: 30px;
+            border: 1px solid #bdcbd9;
+            text-align: center;
+        }
+        .form-card {
+            background: #ffffff;
+            border-radius: 24px;
+            border: 1px solid #e2edf7;
+            margin-bottom: 28px;
+            padding: 18px 20px;
+            position: relative;
+        }
+        .simulador-area {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f0f7fc;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .simulador-area button {
+            background: #2c7cb6;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+        }
+        .simulador-resultado {
+            font-weight: bold;
+            color: #1e4663;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 12px;
+        }
+        .input-field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .input-field label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #2c5f8a;
+        }
+        .input-field input, .input-field select {
+            padding: 8px 10px;
+            border-radius: 14px;
+            border: 1.5px solid #dce5ec;
+        }
+        .btn-lancar, .btn-excel, .btn-pdf {
+            background: #1a6d3c;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .btn-pdf { background: #b22222; }
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+            margin-bottom: 20px;
+            background: #f8fafc;
+            padding: 14px;
+            border-radius: 24px;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 20px;
+            border: 1px solid #e2edf7;
+            margin-top: 12px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.7rem;
+            min-width: 1400px;
+        }
+        .data-table th {
+            background: #f1f6fd;
+            color: #1e3a5f;
+            padding: 10px 4px;
+            border-bottom: 2px solid #cddeef;
+        }
+        .data-table td {
+            padding: 8px 4px;
+            border-bottom: 1px solid #e9edf2;
+            text-align: right;
+        }
+        .data-table td:first-child, .data-table td:nth-child(2) { text-align: left; }
+        .delete-btn, .edit-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 0 2px;
+            padding: 4px 6px;
+            border-radius: 20px;
+        }
+        .edit-btn { color: #2c7cb6; }
+        .delete-btn { color: #b91c1c; }
+        .total-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 24px;
+            background: #f0f5fa;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            flex-wrap: wrap;
+        }
+        .relatorio-filtros, .dashboard-filtros {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 24px;
+            margin-bottom: 24px;
+        }
+        .relatorio-bloco {
+            margin-bottom: 40px;
+            border: 1px solid #e2edf7;
+            border-radius: 20px;
+            padding: 16px;
+            background: #fefefe;
+        }
+        .relatorio-titulo {
+            background: #1e3a5f;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        .relatorio-tabela {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.7rem;
+        }
+        .relatorio-tabela th, .dashboard-table th {
+            background: #eef2f7;
+            color: #1e3a5f;
+            padding: 8px 4px;
+            border: 1px solid #ccc;
+        }
+        .relatorio-tabela td, .dashboard-table td {
+            border: 1px solid #ddd;
+            padding: 6px 4px;
+            text-align: right;
+        }
+        .relatorio-tabela td:first-child { text-align: left; }
+        .margem-baixa { background-color: #ffe0e0 !important; color: #b00020 !important; font-weight: 600; }
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .card {
+            background: linear-gradient(135deg, #1e3a5f, #2c5a7a);
+            color: white;
+            padding: 14px;
+            border-radius: 20px;
+            text-align: center;
+        }
+        .card h4 { font-size: 0.75rem; opacity: 0.9; margin-bottom: 6px; }
+        .card .value { font-size: 1.3rem; font-weight: 700; }
+        .card .sub { font-size: 0.6rem; margin-top: 5px; }
+        .chart-container {
+            background: white;
+            padding: 16px;
+            border-radius: 20px;
+            border: 1px solid #e2edf7;
+            margin-top: 20px;
+        }
+        canvas { max-height: 280px; width: 100% !important; }
+        .visao-geral {
+            margin-top: 28px;
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 16px;
+        }
+        .resumo-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.7rem;
+        }
+        .resumo-table th, .resumo-table td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            text-align: right;
+        }
+        .resumo-table td:first-child { text-align: left; }
+        .modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 28px;
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+        }
+        .simulador-financeiro {
+            background: #f9fafb;
+            border-radius: 24px;
+            padding: 20px;
+        }
+        .resultado-simulador {
+            background: #eef2f7;
+            padding: 16px;
+            border-radius: 16px;
+            margin-top: 20px;
+        }
+        .tabela-taxas {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.7rem;
+            margin-top: 16px;
+        }
+        .tabela-taxas th, .tabela-taxas td {
+            border: 1px solid #ccc;
+            padding: 6px;
+            text-align: center;
+        }
+        @media (max-width: 640px) {
+            .container { padding: 12px; }
+            .tab-btn { padding: 8px 12px; font-size: 0.75rem; }
+            .card .value { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="top-header">
+        <div class="title-area"><h1>📊 Sistema Breton · Margens & Gestão</h1></div>
+        <div class="header-buttons">
+            <button class="calc-btn" id="openCalculatorBtn">🧮 Calculadora</button>
+            <button class="config-btn" id="toggleConfig">⚙️ Ajustar Simples</button>
+        </div>
+    </div>
+    <div id="configPanel" style="display: none;">
+        <div class="config-panel">
+            <div class="config-item"><label>🔹 Alíquota Simples Nacional</label><input type="number" id="simplesAliquota" step="0.01" value="6.00"> %</div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="tab1">📋 LANÇAMENTOS</button>
+        <button class="tab-btn" data-tab="tab2">📊 RELATÓRIOS</button>
+        <button class="tab-btn" data-tab="tab3">📈 DASHBOARD</button>
+        <button class="tab-btn" data-tab="tab4">💳 TAR. FINANCEIRAS</button>
+    </div>
+
+    <!-- ABA 1 - LANÇAMENTOS -->
+    <div id="tab1" class="tab-content active">
+        <div class="form-card">
+            <div class="form-grid">
+                <div class="input-field"><label>📅 DATA</label><input type="date" id="dataInput" value="2026-05-01"></div>
+                <div class="input-field"><label>👤 CLIENTE</label><input type="text" id="clienteInput" list="clientesList" placeholder="Digite ou selecione"><datalist id="clientesList"></datalist></div>
+                <div class="input-field"><label>💰 VENDA (R$)</label><input type="text" id="vendaInput" class="moeda" value="1.000,00"></div>
+                <div class="input-field"><label>🏷️ PRODUTO (R$)</label><input type="text" id="produtoInput" class="moeda" value="400,00"></div>
+                <div class="input-field"><label>💸 DESP.FINANCEIRAS (R$)</label><input type="text" id="despFinanceirasInput" class="moeda" value="0,00"></div>
+                <div class="input-field"><label>📦 TIPO PEDIDO</label><select id="tipoPedidoInput"><option>OC</option><option>SR</option><option>OC/SR</option></select></div>
+            </div>
+            <div class="simulador-area">
+                <button id="btnSimular">🔮 Simular Margem</button>
+                <span class="simulador-resultado" id="simuladorResultado">Clique em Simular</span>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 16px;"><button class="btn-lancar" id="btnLancar">➕ LANÇAR</button></div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="filter-group"><label>🔍 CLIENTE</label><input type="text" id="filtroCliente" placeholder="Filtrar por nome"></div>
+            <div class="filter-group"><label>📆 MÊS</label><select id="filtroMesSelect"><option value="">Todos</option></select></div>
+            <div class="filter-group"><button class="btn-excel" id="btnFiltrar">🔎 Filtrar</button></div>
+            <div class="filter-group"><button class="btn-excel" id="btnLimparFiltros">🗑️ Limpar</button></div>
+            <div class="filter-group"><button class="btn-excel" id="btnExportarExcel">📎 Excel</button></div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>MÊS</th><th>CLIENTE</th><th>VENDA</th><th>IMP VENDA</th><th>PRODUTO</th><th>FRETE+EMB</th><th>CMV</th><th>LUCRO BRUTO</th><th>% LB</th><th>VARIÁVEIS</th><th>CUSTOS ADM</th><th>EBITDA</th><th>IMP LUCRO</th><th>DESP.FIN</th><th>LUCRO LÍQ</th><th>MARGEM</th><th>AÇÕES</th></tr></thead>
+                <tbody id="tbodyLancamentos"></tbody>
+            </table>
+        </div>
+        <div class="total-footer" id="totalFooter"></div>
+    </div>
+
+    <!-- ABA 2 - RELATÓRIOS -->
+    <div id="tab2" class="tab-content">
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 12px;">
+            <button class="btn-pdf" id="exportarRelatorioPDF">📄 Exportar PDF</button>
+        </div>
+        <div class="relatorio-filtros">
+            <div class="filter-group"><label>📆 MÊS</label><select id="relMesSelect"><option value="">Selecione um mês</option></select></div>
+            <div class="filter-group"><label>👤 CLIENTE</label><select id="relClienteSelect"><option value="">Todos os clientes</option></select></div>
+            <button class="btn-relatorio" id="btnGerarRelatorio">📊 Gerar</button>
+        </div>
+        <div id="relatorioContainer"></div>
+    </div>
+
+    <!-- ABA 3 - DASHBOARD -->
+    <div id="tab3" class="tab-content">
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 12px;">
+            <button class="btn-pdf" id="exportarDashboardPDF">📄 Exportar PDF</button>
+        </div>
+        <div class="dashboard-filtros">
+            <div class="filter-group"><label>📆 MÊS INICIAL</label><select id="dashMesInicio"><option value="">Todos</option></select></div>
+            <div class="filter-group"><label>📆 MÊS FINAL</label><select id="dashMesFim"><option value="">Todos</option></select></div>
+            <div style="display:flex; gap:15px;">
+                <label><input type="radio" name="tipoImposto" value="com" checked> 📊 COM Imposto</label>
+                <label><input type="radio" name="tipoImposto" value="sem"> 📉 SEM Imposto</label>
+            </div>
+            <button class="btn-relatorio" id="btnAtualizarDash">🔄 Atualizar</button>
+        </div>
+        <div id="dashboardContainer">
+            <div class="dashboard-cards" id="dashboardCards"></div>
+            <div class="chart-container"><canvas id="evolucaoChart"></canvas></div>
+            <div class="chart-container"><canvas id="margemChart"></canvas></div>
+            <div class="visao-geral" id="visaoGeral"></div>
+        </div>
+    </div>
+
+    <!-- ABA 4 - TAR. FINANCEIRAS -->
+    <div id="tab4" class="tab-content">
+        <div class="simulador-financeiro">
+            <h3 style="margin-bottom: 20px;">💳 Simulador de Taxas - Cartão / Financiamento</h3>
+            <div class="form-grid">
+                <div class="input-field"><label>👤 CLIENTE</label><input type="text" id="finCliente" placeholder="Nome do cliente"></div>
+                <div class="input-field"><label>💰 VALOR (R$)</label><input type="text" id="finValor" class="moeda" value="10.000,00"></div>
+                <div class="input-field"><label>💳 FORMA DE PAGAMENTO</label><select id="finForma"><option value="cartao">Cartão</option><option value="financiamento">Financiamento</option></select></div>
+                <div class="input-field"><label>📦 PARCELAS</label><select id="finParcelas"><option value="1">1 parcela</option><option value="2">2 parcelas</option><option value="3">3 parcelas</option><option value="4">4 parcelas</option><option value="5">5 parcelas</option><option value="6">6 parcelas</option><option value="7">7 parcelas</option><option value="8">8 parcelas</option><option value="9">9 parcelas</option><option value="10">10 parcelas</option></select></div>
+                <div class="input-field" id="campoPrazo" style="display:none;"><label>⏱️ PRAZO</label><select id="finPrazo"><option value="30">30 dias</option><option value="60">60 dias</option><option value="90">90 dias</option></select></div>
+            </div>
+            <button class="btn-lancar" id="btnSimularTaxa" style="margin-top: 10px;">🔮 Calcular Taxa</button>
+            <div class="resultado-simulador" id="resultadoTaxa">
+                <strong>📊 Resultado:</strong><br>
+                Taxa aplicada: --<br>
+                Valor da taxa (R$): --<br>
+                Valor líquido (R$): --
+            </div>
+            <h4 style="margin: 24px 0 12px;">📋 Tabela de Referência - Financiamento</h4>
+            <table class="tabela-taxas">
+                <thead><tr><th>Parcelas</th><th>30 dias</th><th>60 dias</th><th>90 dias</th></tr></thead>
+                <tbody>
+                    <tr><td>1</td><td>2,43%</td><td>4,80%</td><td>7,11%</td></tr>
+                    <tr><td>2</td><td>3,61%</td><td>5,96%</td><td>8,24%</td></tr>
+                    <tr><td>3</td><td>4,78%</td><td>7,09%</td><td>9,35%</td></tr>
+                    <tr><td>4</td><td>5,93%</td><td>8,21%</td><td>10,44%</td></tr>
+                    <tr><td>5</td><td>7,06%</td><td>9,31%</td><td>11,52%</td></tr>
+                    <tr><td>6</td><td>8,17%</td><td>10,40%</td><td>12,58%</td></tr>
+                    <tr><td>7</td><td>8,91%</td><td>11,04%</td><td>13,12%</td></tr>
+                    <tr><td>8</td><td>9,95%</td><td>12,05%</td><td>14,11%</td></tr>
+                    <tr><td>9</td><td>10,97%</td><td>13,05%</td><td>15,08%</td></tr>
+                    <tr><td>10</td><td>11,98%</td><td>14,03%</td><td>16,04%</td></tr>
+                </tbody>
+            </table>
+            <div style="margin-top: 16px; font-size: 0.7rem; background: #eef2f7; padding: 8px; border-radius: 12px;">
+                💡 <strong>Regras Cartão:</strong> 1 parcela = 2,06% | 2-6x = 2,33% | 7-12x = 2,63%
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========== CONFIGURAÇÃO DO FIREBASE (SUAS CREDENCIAIS) ==========
+    const firebaseConfig = {
+        apiKey: "AIzaSyBQRnzD2zg2rKOa9XpCsXwFC-oDcnwUdnI",
+        authDomain: "margens-breton.firebaseapp.com",
+        projectId: "margens-breton",
+        storageBucket: "margens-breton.firebasestorage.app",
+        messagingSenderId: "562700996833",
+        appId: "1:562700996833:web:b9ccbf46777548664527a0",
+        measurementId: "G-DSDFHGL108"
+    };
+    
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    
+    // ========== MÁSCARA MOEDA ==========
+    function maskMoeda(el) {
+        let value = el.value.replace(/\D/g, '');
+        value = (parseInt(value) / 100).toFixed(2);
+        if (isNaN(value)) value = '0.00';
+        el.value = formatarMoeda(parseFloat(value));
+    }
+    function formatarMoeda(valor) { return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function parseMoeda(str) { return parseFloat(str.replace(/\./g,'').replace(',','.')) || 0; }
+
+    // ========== CÁLCULOS ==========
+    function getRegimeByData(dataStr) { return new Date(dataStr).getFullYear() < 2026 ? "Presumido" : "Simples"; }
+    function formatMesAno(dataStr) { let d = new Date(dataStr); return `${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getFullYear()}`; }
+    function calcularImpostos(venda, regime, aliquotaSimples) {
+        if(regime === "Presumido") return { impostoVenda: venda * 0.2165, impostoLucro: venda * 0.0228 };
+        let impV = venda * (aliquotaSimples / 100);
+        return { impostoVenda: impV, impostoLucro: 0 };
+    }
+    function calcularCampos(venda, produto, despFin, regime, aliquotaSimples) {
+        const { impostoVenda, impostoLucro } = calcularImpostos(venda, regime, aliquotaSimples);
+        const freteEmb = produto * 0.1675;
+        const cmv = produto + freteEmb;
+        const lucroBruto = venda - impostoVenda - cmv;
+        const percLB = venda ? lucroBruto / venda : 0;
+        const variaveis = (venda - despFin) * 0.2262;
+        const custosAdm = lucroBruto * 0.1213;
+        const ebitda = lucroBruto - variaveis - custosAdm;
+        const lucroLiquido = ebitda - impostoLucro - despFin;
+        const margem = venda ? lucroLiquido / venda : 0;
+        return { impostoVenda, freteEmb, cmv, lucroBruto, percLB, variaveis, custosAdm, ebitda, impostoLucro, lucroLiquido, margem };
+    }
+
+    let lancamentos = [];
+    let chartEvol, chartMarg;
+
+    function getAliquota() { return parseFloat(document.getElementById('simplesAliquota').value) || 6; }
+    function showToast(msg) { let div = document.createElement('div'); div.className = 'toast-msg'; div.innerText = msg; document.body.appendChild(div); setTimeout(() => div.remove(), 2000); }
+    
+    // Carregar dados do Firebase
+    async function carregarDados() {
+        try {
+            const snapshot = await db.collection('lancamentos').orderBy('dataRef', 'desc').get();
+            lancamentos = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                lancamentos.push({ id: doc.id, ...data });
+            });
+            atualizarDropdowns();
+            renderizarTabela();
+            atualizarDashboardCompleto();
+            atualizarListaClientes();
+        } catch (error) {
+            console.error("Erro ao carregar dados:", error);
+            showToast("⚠️ Erro ao conectar com Firebase. Verifique suas configurações.");
+        }
+    }
+    
+    async function salvarLancamento(lancamento) {
+        try {
+            if (lancamento.id && lancamento.id.length > 10) {
+                await db.collection('lancamentos').doc(lancamento.id).update(lancamento);
+            } else {
+                const docRef = await db.collection('lancamentos').add(lancamento);
+                lancamento.id = docRef.id;
+            }
+        } catch (error) {
+            console.error("Erro ao salvar:", error);
+            showToast("⚠️ Erro ao salvar no Firebase");
+        }
+    }
+    
+    async function removerLancamentoFirebase(id) {
+        try {
+            await db.collection('lancamentos').doc(id).delete();
+            lancamentos = lancamentos.filter(l => l.id !== id);
+            atualizarDashboardCompleto();
+            renderizarTabela();
+            atualizarDropdowns();
+            atualizarListaClientes();
+            showToast("🗑️ Lançamento removido");
+        } catch (error) {
+            console.error("Erro ao remover:", error);
+            showToast("⚠️ Erro ao remover");
+        }
+    }
+
+    function atualizarListaClientes() {
+        let clientes = [...new Set(lancamentos.map(l => l.cliente))].sort();
+        let datalist = document.getElementById('clientesList');
+        datalist.innerHTML = clientes.map(c => `<option value="${c}">`).join('');
+    }
+
+    function limparCamposForm() {
+        document.getElementById('clienteInput').value = '';
+        document.getElementById('vendaInput').value = '1.000,00';
+        document.getElementById('produtoInput').value = '400,00';
+        document.getElementById('despFinanceirasInput').value = '0,00';
+    }
+
+    async function adicionarLancamento() {
+        let data = document.getElementById('dataInput').value;
+        let cliente = document.getElementById('clienteInput').value.trim();
+        let venda = parseMoeda(document.getElementById('vendaInput').value);
+        let produto = parseMoeda(document.getElementById('produtoInput').value);
+        let despFin = parseMoeda(document.getElementById('despFinanceirasInput').value);
+        let tipo = document.getElementById('tipoPedidoInput').value;
+        if (!data || !cliente || isNaN(venda) || venda <= 0 || isNaN(produto)) { alert("Preencha todos os campos: Data, Cliente, Venda e Produto."); return; }
+        let aliquota = getAliquota();
+        let regime = getRegimeByData(data);
+        let calc = calcularCampos(venda, produto, despFin, regime, aliquota);
+        let mes = formatMesAno(data);
+        let novo = { dataRef: data, mes, cliente, venda, produto, despFin, tipo, regime, ...calc };
+        await salvarLancamento(novo);
+        await carregarDados();
+        limparCamposForm();
+        showToast("✅ Venda lançada com sucesso!");
+    }
+
+    async function editarLancamentoCompleto(id) {
+        let l = lancamentos.find(l => l.id === id);
+        if (!l) return;
+        let modal = document.createElement('div'); modal.className = 'modal';
+        modal.innerHTML = `<div class="modal-content"><h3>✏️ Editar Lançamento</h3><div style="display:grid; gap:12px;">
+            <div><label>DATA</label><input type="date" id="editData" value="${l.dataRef}"></div>
+            <div><label>CLIENTE</label><input type="text" id="editCliente" value="${l.cliente}"></div>
+            <div><label>VENDA (R$)</label><input type="text" id="editVenda" class="moeda" value="${formatarMoeda(l.venda)}"></div>
+            <div><label>PRODUTO (R$)</label><input type="text" id="editProduto" class="moeda" value="${formatarMoeda(l.produto)}"></div>
+            <div><label>DESP.FIN (R$)</label><input type="text" id="editDespFin" class="moeda" value="${formatarMoeda(l.despFin)}"></div>
+            <div><label>TIPO</label><select id="editTipo"><option>OC</option><option>SR</option><option>OC/SR</option></select></div>
+            <div style="display:flex; gap:12px; justify-content:flex-end;"><button id="saveEditBtn">💾 Salvar</button><button id="cancelEditBtn">Cancelar</button></div>
+        </div></div>`;
+        document.body.appendChild(modal);
+        document.getElementById('editTipo').value = l.tipo;
+        document.getElementById('saveEditBtn').onclick = async () => {
+            let newData = document.getElementById('editData').value;
+            let newCliente = document.getElementById('editCliente').value.trim();
+            let newVenda = parseMoeda(document.getElementById('editVenda').value);
+            let newProduto = parseMoeda(document.getElementById('editProduto').value);
+            let newDesp = parseMoeda(document.getElementById('editDespFin').value);
+            let newTipo = document.getElementById('editTipo').value;
+            if (!newData || !newCliente || isNaN(newVenda) || isNaN(newProduto)) { alert("Preencha corretamente"); return; }
+            let aliquota = getAliquota();
+            let regime = getRegimeByData(newData);
+            let calc = calcularCampos(newVenda, newProduto, newDesp, regime, aliquota);
+            Object.assign(l, { dataRef: newData, mes: formatMesAno(newData), cliente: newCliente, venda: newVenda, produto: newProduto, despFin: newDesp, tipo: newTipo, regime, ...calc });
+            await salvarLancamento(l);
+            await carregarDados();
+            modal.remove(); showToast("✏️ Lançamento editado!");
+        };
+        document.getElementById('cancelEditBtn').onclick = () => modal.remove();
+    }
+
+    function removerLancamento(id) { removerLancamentoFirebase(id); }
+
+    function atualizarDropdowns() {
+        let meses = [...new Set(lancamentos.map(l => l.mes))].sort((a,b)=>{ let [mA,aA]=a.split('/'), [mB,aB]=b.split('/'); return aA!==aB ? parseInt(aB)-parseInt(aA) : parseInt(mB)-parseInt(mA); });
+        ['filtroMesSelect','relMesSelect','dashMesInicio','dashMesFim'].forEach(id => { let el = document.getElementById(id); if(el) el.innerHTML = '<option value="">Todos</option>' + meses.map(m=>`<option value="${m}">${m}</option>`).join(''); });
+        atualizarClientesRel();
+    }
+    function atualizarClientesRel() {
+        let mesSel = document.getElementById('relMesSelect').value;
+        let lista = mesSel ? lancamentos.filter(l=>l.mes===mesSel).map(l=>l.cliente) : lancamentos.map(l=>l.cliente);
+        let unicos = [...new Set(lista)].sort();
+        let select = document.getElementById('relClienteSelect');
+        select.innerHTML = '<option value="">Todos os clientes</option>' + unicos.map(c=>`<option value="${c}">${c}</option>`).join('');
+    }
+
+    function renderizarTabela() {
+        let filtroCliente = document.getElementById('filtroCliente').value.toLowerCase();
+        let filtroMes = document.getElementById('filtroMesSelect').value;
+        let filtered = lancamentos.filter(l => (!filtroCliente || l.cliente.toLowerCase().includes(filtroCliente)) && (!filtroMes || l.mes === filtroMes));
+        let tbody = document.getElementById('tbodyLancamentos');
+        if(!filtered.length){ tbody.innerHTML='<td><td colspan="17">Nenhum lançamento. Clique em LANÇAR.72</td></tr>'; atualizarTotaisFiltrados(filtered); return; }
+        tbody.innerHTML = '';
+        filtered.forEach(l => {
+            let row = tbody.insertRow();
+            row.insertCell(0).innerText = l.mes;
+            row.insertCell(1).innerText = l.cliente;
+            row.insertCell(2).innerText = `R$ ${formatarMoeda(l.venda)}`;
+            row.insertCell(3).innerText = `R$ ${formatarMoeda(l.impostoVenda)}`;
+            row.insertCell(4).innerText = `R$ ${formatarMoeda(l.produto)}`;
+            row.insertCell(5).innerText = `R$ ${formatarMoeda(l.freteEmb)}`;
+            row.insertCell(6).innerText = `R$ ${formatarMoeda(l.cmv)}`;
+            row.insertCell(7).innerText = `R$ ${formatarMoeda(l.lucroBruto)}`;
+            row.insertCell(8).innerText = `${(l.percLB*100).toFixed(2)}%`;
+            row.insertCell(9).innerText = `R$ ${formatarMoeda(l.variaveis)}`;
+            row.insertCell(10).innerText = `R$ ${formatarMoeda(l.custosAdm)}`;
+            row.insertCell(11).innerText = `R$ ${formatarMoeda(l.ebitda)}`;
+            row.insertCell(12).innerText = `R$ ${formatarMoeda(l.impostoLucro)}`;
+            row.insertCell(13).innerText = `R$ ${formatarMoeda(l.despFin)}`;
+            row.insertCell(14).innerText = `R$ ${formatarMoeda(l.lucroLiquido)}`;
+            row.insertCell(15).innerText = `${(l.margem*100).toFixed(2)}%`;
+            let cellAcao = row.insertCell(16);
+            let btnEdit = document.createElement('button'); btnEdit.innerText='✏️'; btnEdit.className='edit-btn'; btnEdit.onclick = () => editarLancamentoCompleto(l.id);
+            let btnDel = document.createElement('button'); btnDel.innerText='🗑️'; btnDel.className='delete-btn'; btnDel.onclick = () => removerLancamento(l.id);
+            cellAcao.appendChild(btnEdit); cellAcao.appendChild(btnDel);
+        });
+        atualizarTotaisFiltrados(filtered);
+    }
+    function atualizarTotaisFiltrados(filtrados) {
+        let totalVenda = filtrados.reduce((s,l)=>s+l.venda,0);
+        let totalLucro = filtrados.reduce((s,l)=>s+l.lucroLiquido,0);
+        let margemMedia = filtrados.length ? filtrados.reduce((s,l)=>s+l.margem,0)/filtrados.length : 0;
+        document.getElementById('totalFooter').innerHTML = `<div>💰 TOTAL VENDAS: R$ ${formatarMoeda(totalVenda)}</div><div>📈 TOTAL LUCRO: R$ ${formatarMoeda(totalLucro)}</div><div>📊 MARGEM MÉDIA: ${(margemMedia*100).toFixed(2)}%</div>`;
+    }
+
+    function gerarRelatorioUI() {
+        let mes = document.getElementById('relMesSelect').value;
+        let clienteSel = document.getElementById('relClienteSelect').value;
+        let filtered = lancamentos.filter(l => (!mes || l.mes === mes) && (!clienteSel || l.cliente === clienteSel));
+        let container = document.getElementById('relatorioContainer');
+        if(!filtered.length){ container.innerHTML='<div>Nenhum resultado</div>'; return; }
+        let exibe = mes || "GERAL";
+        function montarTabela(titulo, dados, comImposto=true) {
+            let somaVenda=0, somaCmv=0, somaLucroBruto=0, somaVar=0, somaCustos=0, somaEbitda=0, somaImpostos=0, somaDesp=0, somaLucroLiq=0, somaMargem=0;
+            let rows = dados.map(l => {
+                let margemVal = comImposto ? l.margem : ((l.venda - l.cmv - ((l.venda-l.despFin)*0.2262) - ((l.venda-l.cmv)*0.1213) - l.despFin)/l.venda);
+                let percMargem = margemVal*100;
+                let classeMargem = percMargem < 10 ? 'class="margem-baixa"' : '';
+                let lucroExibir = comImposto ? l.lucroLiquido : (l.venda - l.cmv - ((l.venda-l.despFin)*0.2262) - ((l.venda-l.cmv)*0.1213) - l.despFin);
+                let lbExibir = comImposto ? l.lucroBruto : (l.venda - l.cmv);
+                let impExibir = comImposto ? (l.impostoVenda+l.impostoLucro) : 0;
+                let percLB = (lbExibir/l.venda)*100;
+                somaVenda += l.venda; somaCmv += l.cmv; somaLucroBruto += lbExibir; somaVar += l.variaveis; somaCustos += l.custosAdm;
+                somaEbitda += comImposto ? l.ebitda : (lbExibir - ((l.venda-l.despFin)*0.2262) - (lbExibir*0.1213));
+                somaImpostos += impExibir; somaDesp += l.despFin; somaLucroLiq += lucroExibir; somaMargem += margemVal;
+                return `<tr>
+                    <td style="text-align:left">${l.cliente}</td>
+                    <td>R$ ${formatarMoeda(l.venda)}</td>
+                    <td>R$ ${formatarMoeda(l.cmv)}</td>
+                    <td>R$ ${formatarMoeda(lbExibir)}</td>
+                    <td>${percLB.toFixed(2)}%</td>
+                    <td>R$ ${formatarMoeda(l.variaveis)}</td>
+                    <td>R$ ${formatarMoeda(l.custosAdm)}</td>
+                    <td>R$ ${formatarMoeda(comImposto ? l.ebitda : (lbExibir - ((l.venda-l.despFin)*0.2262) - (lbExibir*0.1213)))}</td>
+                    <td>R$ ${formatarMoeda(impExibir)}</td>
+                    <td>R$ ${formatarMoeda(l.despFin)}</td>
+                    <td style="font-weight:600;">R$ ${formatarMoeda(lucroExibir)}</td>
+                    <td ${classeMargem}>${percMargem.toFixed(2)}%</td>
+                </tr>`;
+            }).join('');
+            let mediaMargem = dados.length ? (somaMargem/dados.length)*100 : 0;
+            return `<div class="relatorio-bloco"><div class="relatorio-titulo">${titulo}</div>
+            <table class="relatorio-tabela"><thead><tr><th>CLIENTE</th><th>VENDA</th><th>CMV</th><th>LUCRO BRUTO</th><th>% LB</th><th>VARIÁVEIS</th><th>CUSTOS ADM</th><th>EBITDA</th><th>IMPOSTOS</th><th>DESP.FIN</th><th>LUCRO LIQUIDO</th><th>MARGEM</th></tr></thead>
+            <tbody>${rows}<tr style="background:#e2e8f0; font-weight:bold;"><td style="text-align:left"><strong>TOTAIS/MÉDIA</strong></td>
+                <td><strong>R$ ${formatarMoeda(somaVenda)}</strong></td>
+                <td><strong>R$ ${formatarMoeda(somaCmv)}</strong></td>
+                <td><strong>R$ ${formatarMoeda(somaLucroBruto)}</strong></td>
+                <td></td>
+                <td><strong>R$ ${formatarMoeda(somaVar)}</strong></td>
+                <td><strong>R$ ${formatarMoeda(somaCustos)}</strong></td>
+                <td><strong>R$ ${formatarMoeda(somaEbitda)}</strong></td>
+                <td><strong>R$ ${formatarMoeda(somaImpostos)}</strong></td>
+                <td><strong>R$ ${formatarMoeda(somaDesp)}</strong></td>
+                <td><strong>R$ ${formatarMoeda(somaLucroLiq)}</strong></td>
+                <td><strong>${mediaMargem.toFixed(2)}%</strong></td>
+              </tr></tbody></table></div>`;
+        }
+        container.innerHTML = montarTabela(`📊 BRETON - ${exibe} (COM IMPOSTOS)`, filtered, true) + montarTabela(`📊 BRETON - ${exibe} (SEM IMPOSTOS)`, filtered, false);
+    }
+
+    function atualizarDashboardCompleto() {
+        let inicio = document.getElementById('dashMesInicio').value;
+        let fim = document.getElementById('dashMesFim').value;
+        let comImposto = document.querySelector('input[name="tipoImposto"]:checked').value === 'com';
+        let filtered = lancamentos.filter(l => (!inicio || l.mes >= inicio) && (!fim || l.mes <= fim));
+        let totalVenda = filtered.reduce((s,l)=>s+l.venda,0);
+        let totalLucro = filtered.reduce((s,l)=>s+(comImposto ? l.lucroLiquido : (l.venda - l.cmv - ((l.venda-l.despFin)*0.2262) - ((l.venda-l.cmv)*0.1213) - l.despFin)),0);
+        let totalCustosAdm = filtered.reduce((s,l)=>s+(comImposto ? l.custosAdm : ((l.venda-l.cmv)*0.1213)),0);
+        let qtdVendas = filtered.length;
+        let ticketMedio = qtdVendas ? totalVenda / qtdVendas : 0;
+        let maiorVenda = filtered.length ? Math.max(...filtered.map(l=>l.venda)) : 0;
+        let menorVenda = filtered.length ? Math.min(...filtered.map(l=>l.venda)) : 0;
+        let margemMedia = totalVenda ? (totalLucro/totalVenda)*100 : 0;
+        document.getElementById('dashboardCards').innerHTML = `
+            <div class="card"><h4>💰 VENDAS TOTAIS</h4><div class="value">R$ ${formatarMoeda(totalVenda)}</div></div>
+            <div class="card"><h4>📈 LUCRO ${comImposto ? 'LÍQUIDO' : 'AJUSTADO'}</h4><div class="value">R$ ${formatarMoeda(totalLucro)}</div><div class="sub">${margemMedia.toFixed(2)}%</div></div>
+            <div class="card"><h4>🏢 CUSTOS ADMIN</h4><div class="value">R$ ${formatarMoeda(totalCustosAdm)}</div></div>
+            <div class="card"><h4>🎫 TICKET MÉDIO</h4><div class="value">R$ ${formatarMoeda(ticketMedio)}</div><div class="sub">${qtdVendas} vendas</div></div>
+            <div class="card"><h4>📊 MAIOR VENDA</h4><div class="value">R$ ${formatarMoeda(maiorVenda)}</div></div>
+            <div class="card"><h4>📉 MENOR VENDA</h4><div class="value">R$ ${formatarMoeda(menorVenda)}</div></div>`;
+        let mesesMap = new Map();
+        filtered.forEach(l => { if(!mesesMap.has(l.mes)) mesesMap.set(l.mes, {venda:0, lucro:0}); let d = mesesMap.get(l.mes); d.venda += l.venda; d.lucro += comImposto ? l.lucroLiquido : (l.venda - l.cmv - ((l.venda-l.despFin)*0.2262) - ((l.venda-l.cmv)*0.1213) - l.despFin); });
+        let labels = Array.from(mesesMap.keys()).sort((a,b)=>{ let [mA,aA]=a.split('/'), [mB,aB]=b.split('/'); return aA!==aB ? parseInt(aA)-parseInt(aB) : parseInt(mA)-parseInt(mB); });
+        let vendasData = labels.map(m=>mesesMap.get(m).venda);
+        let lucrosData = labels.map(m=>mesesMap.get(m).lucro);
+        if(chartEvol) chartEvol.destroy();
+        if(chartMarg) chartMarg.destroy();
+        chartEvol = new Chart(document.getElementById('evolucaoChart'), { type:'line', data:{ labels, datasets:[{ label:'Vendas (R$)', data:vendasData, borderColor:'#1a6d3c', fill:true, tension:0.3 },{ label:comImposto?'Lucro Líquido':'Lucro Ajustado', data:lucrosData, borderColor:'#2c7cb6', fill:true, tension:0.3 }] }, options:{ responsive:true, maintainAspectRatio:true } });
+        let margensData = labels.map(m=> (mesesMap.get(m).lucro/mesesMap.get(m).venda)*100);
+        chartMarg = new Chart(document.getElementById('margemChart'), { type:'bar', data:{ labels, datasets:[{ label:comImposto?'Margem Líquida (%)':'Margem Ajustada (%)', data:margensData, backgroundColor:'#e6a017', borderRadius:8 }] }, options:{ responsive:true, maintainAspectRatio:true, plugins:{ tooltip:{ callbacks:{ label:(ctx)=>`${ctx.raw.toFixed(2)}%` } } } } });
+        let clienteMap = new Map();
+        filtered.forEach(l => { if(!clienteMap.has(l.cliente)) clienteMap.set(l.cliente, {venda:0, lucro:0}); let d = clienteMap.get(l.cliente); d.venda += l.venda; d.lucro += comImposto ? l.lucroLiquido : (l.venda - l.cmv - ((l.venda-l.despFin)*0.2262) - ((l.venda-l.cmv)*0.1213) - l.despFin); });
+        let clientesOrd = Array.from(clienteMap.keys()).sort();
+        let tabelaCli = clientesOrd.map(c => `<tr><td style="text-align:left">${c}</td><td>R$ ${formatarMoeda(clienteMap.get(c).venda)}</td><td>R$ ${formatarMoeda(clienteMap.get(c).lucro)}</td><td>${((clienteMap.get(c).lucro/clienteMap.get(c).venda)*100).toFixed(2)}%</td></tr>`).join('');
+        let totalGeralVenda = filtered.reduce((s,l)=>s+l.venda,0);
+        let totalGeralLucro = filtered.reduce((s,l)=>s+(comImposto?l.lucroLiquido: (l.venda - l.cmv - ((l.venda-l.despFin)*0.2262) - ((l.venda-l.cmv)*0.1213) - l.despFin)),0);
+        document.getElementById('visaoGeral').innerHTML = `<h4>📊 VISÃO GERAL DO NEGÓCIO</h4><table class="resumo-table"><thead><tr><th>CLIENTE</th><th>VENDAS</th><th>LUCRO</th><th>MARGEM</th></tr></thead><tbody>${tabelaCli}<tr style="background:#e2e8f0; font-weight:bold;"><td style="text-align:left">TOTAL</td><td><strong>R$ ${formatarMoeda(totalGeralVenda)}</strong></td><td><strong>R$ ${formatarMoeda(totalGeralLucro)}</strong></td><td><strong>${((totalGeralLucro/totalGeralVenda)*100).toFixed(2)}%</strong></td></tr></tbody></table>`;
+    }
+
+    function calcularTaxaSimulador() {
+        let valor = parseMoeda(document.getElementById('finValor').value);
+        let forma = document.getElementById('finForma').value;
+        let parcelas = parseInt(document.getElementById('finParcelas').value);
+        let prazo = parseInt(document.getElementById('finPrazo').value);
+        let taxa = 0;
+        if (forma === 'cartao') {
+            if (parcelas === 1) taxa = 0.0206;
+            else if (parcelas <= 6) taxa = 0.0233;
+            else taxa = 0.0263;
+        } else {
+            const tabela = {
+                1: {30:0.0243, 60:0.0480, 90:0.0711},
+                2: {30:0.0361, 60:0.0596, 90:0.0824},
+                3: {30:0.0478, 60:0.0709, 90:0.0935},
+                4: {30:0.0593, 60:0.0821, 90:0.1044},
+                5: {30:0.0706, 60:0.0931, 90:0.1152},
+                6: {30:0.0817, 60:0.1040, 90:0.1258},
+                7: {30:0.0891, 60:0.1104, 90:0.1312},
+                8: {30:0.0995, 60:0.1205, 90:0.1411},
+                9: {30:0.1097, 60:0.1305, 90:0.1508},
+                10:{30:0.1198, 60:0.1403, 90:0.1604}
+            };
+            if (tabela[parcelas] && tabela[parcelas][prazo]) taxa = tabela[parcelas][prazo];
+        }
+        let valorTaxa = valor * taxa;
+        let valorLiquido = valor - valorTaxa;
+        document.getElementById('resultadoTaxa').innerHTML = `<strong>📊 Resultado:</strong><br>
+            Taxa aplicada: ${(taxa*100).toFixed(2)}%<br>
+            Valor da taxa (R$): R$ ${formatarMoeda(valorTaxa)}<br>
+            Valor líquido (R$): R$ ${formatarMoeda(valorLiquido)}`;
+    }
+
+    function exportarPDF(elementSelector, nomeArquivo) { 
+        let element = document.querySelector(elementSelector);
+        if(!element) return;
+        html2pdf().set({ margin: 10, filename: nomeArquivo, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } }).from(element).save(); 
+    }
+
+    // Event Listeners
+    document.getElementById('btnLancar').addEventListener('click', adicionarLancamento);
+    document.getElementById('btnFiltrar').addEventListener('click', renderizarTabela);
+    document.getElementById('btnLimparFiltros').addEventListener('click', () => { document.getElementById('filtroCliente').value=''; document.getElementById('filtroMesSelect').value=''; renderizarTabela(); });
+    document.getElementById('btnExportarExcel').addEventListener('click', () => alert("Exportação Excel disponível na versão completa"));
+    document.getElementById('btnGerarRelatorio').addEventListener('click', () => { atualizarClientesRel(); gerarRelatorioUI(); });
+    document.getElementById('btnAtualizarDash').addEventListener('click', atualizarDashboardCompleto);
+    document.getElementById('relMesSelect').addEventListener('change', atualizarClientesRel);
+    document.getElementById('toggleConfig').addEventListener('click', () => { document.getElementById('configPanel').style.display = document.getElementById('configPanel').style.display === 'none' ? 'block' : 'none'; });
+    document.getElementById('openCalculatorBtn').addEventListener('click', () => window.open('https://www.google.com/search?q=calculadora', '_blank'));
+    document.getElementById('btnSimular').addEventListener('click', () => { let venda = parseMoeda(document.getElementById('vendaInput').value); let produto = parseMoeda(document.getElementById('produtoInput').value); let desp = parseMoeda(document.getElementById('despFinanceirasInput').value); let regime = getRegimeByData(document.getElementById('dataInput').value); let calc = calcularCampos(venda, produto, desp, regime, getAliquota()); document.getElementById('simuladorResultado').innerHTML = `💰 Lucro: R$ ${formatarMoeda(calc.lucroLiquido)} (${(calc.margem*100).toFixed(2)}%)`; });
+    document.getElementById('exportarRelatorioPDF').addEventListener('click', () => exportarPDF('#relatorioContainer', 'relatorio_breton.pdf'));
+    document.getElementById('exportarDashboardPDF').addEventListener('click', () => exportarPDF('#dashboardContainer', 'dashboard_breton.pdf'));
+    document.getElementById('btnSimularTaxa').addEventListener('click', calcularTaxaSimulador);
+    document.getElementById('finForma').addEventListener('change', (e) => { document.getElementById('campoPrazo').style.display = e.target.value === 'financiamento' ? 'block' : 'none'; });
+    document.querySelectorAll('.moeda').forEach(el => { el.addEventListener('input', function() { maskMoeda(this); }); maskMoeda(el); });
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.tab).classList.add('active');
+            if(btn.dataset.tab === 'tab2') { atualizarClientesRel(); gerarRelatorioUI(); }
+            if(btn.dataset.tab === 'tab3') atualizarDashboardCompleto();
+        });
+    });
+    
+    carregarDados();
+</script>
+</body>
+</html>
