@@ -142,7 +142,7 @@
 
         <div class="table-wrapper">
             <table class="data-table">
-                <thead><tr><th>MÊS</th><th>CLIENTE</th><th>VENDA</th><th>IMP VENDA</th><th>PRODUTO</th><th>FRETE+EMB</th><th>CMV</th><th>LUCRO BRUTO</th><th>% LB</th><th>VARIÁVEIS</th><th>CUSTOS ADM</th><th>EBITDA</th><th>IMP LUCRO</th><th>DESP.FIN</th><th>LUCRO LÍQ</th><th>MARGEM</th><th>RT</th><th>AÇÕES</th></tr></thead>
+                <thead><tr><th>MÊS</th><th>CLIENTE</th><th>VENDA</th><th>IMP VENDA</th><th>PRODUTO</th><th>FRETE+EMB</th><th>CMV</th><th>LUCRO BRUTO</th><th>% LB</th><th>VARIÁVEIS</th><th>CUSTOS ADM</th><th>EBITDA</th><th>IMP LUCRO</th><th>DESP.FIN</th><th>LUCRO LÍQ</th><th>MARGEM</th><th>RT</th><th>AÇÕES</th><tr></thead>
                 <tbody id="tbodyLancamentos"></tbody>
             </table>
         </div>
@@ -203,7 +203,7 @@
                 <tr><td>8</td><td>9,95%</td><td>12,05%</td><td>14,11%</td></tr>
                 <tr><td>9</td><td>10,97%</td><td>13,05%</td><td>15,08%</td></tr>
                 <tr><td>10</td><td>11,98%</td><td>14,03%</td><td>16,04%</td></tr>
-            </tbody></table></div>
+            </tbody>
             <div style="margin-top: 16px; font-size: 0.7rem; background: #eef2f7; padding: 8px; border-radius: 12px;">💡 <strong>Regras Cartão:</strong> 1 parcela = 2,06% | 2-6x = 2,33% | 7-12x = 2,63%</div>
         </div>
     </div>
@@ -226,9 +226,27 @@
     function parseMoeda(str) { return parseFloat(str.replace(/\./g,'').replace(',','.')) || 0; }
     function getRegimeByData(dataStr) { return new Date(dataStr).getFullYear() < 2026 ? "Presumido" : "Simples"; }
     function formatMesAno(dataStr) { let d = new Date(dataStr); return `${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getFullYear()}`; }
-    function calcularImpostos(venda, regime, a) { if(regime==="Presumido") return { impostoVenda: venda*0.2165, impostoLucro: venda*0.0228 }; let impV = venda*(a/100); return { impostoVenda: impV, impostoLucro: 0 }; }
-    function calcularCampos(venda, produto, despFin, regime, aliquotaSimples, possuiRT) {
-        const { impostoVenda, impostoLucro } = calcularImpostos(venda, regime, aliquotaSimples);
+    
+    // NOVA FUNÇÃO DE IMPOSTO COM BASE NO TIPO DE PEDIDO (apenas para Presumido)
+    function calcularImpostos(venda, regime, aliquotaSimples, tipoPedido) {
+        if(regime === "Simples") {
+            let impV = venda * (aliquotaSimples / 100);
+            return { impostoVenda: impV, impostoLucro: 0 };
+        }
+        // Regime Presumido - varia conforme tipo de pedido
+        let aliquotaVenda = 0;
+        if(tipoPedido === "OC") {
+            aliquotaVenda = 0.2165; // PIS 0,65% + COFINS 3% + ICMS 18% = 21,65%
+        } else if(tipoPedido === "OC/SR") {
+            aliquotaVenda = 0.1265; // PIS 0,65% + COFINS 3% + ICMS 9% = 12,65%
+        } else { // SR
+            aliquotaVenda = 0.0365; // PIS 0,65% + COFINS 3% + ICMS 0% = 3,65%
+        }
+        return { impostoVenda: venda * aliquotaVenda, impostoLucro: venda * 0.0228 };
+    }
+    
+    function calcularCampos(venda, produto, despFin, regime, aliquotaSimples, possuiRT, tipoPedido) {
+        const { impostoVenda, impostoLucro } = calcularImpostos(venda, regime, aliquotaSimples, tipoPedido);
         const freteEmb = produto * 0.1675;
         const cmv = produto + freteEmb;
         const lucroBruto = venda - impostoVenda - cmv;
@@ -260,7 +278,7 @@
         if(!data || !cliente || isNaN(venda) || venda<=0) { alert("Preencha todos os campos!"); return; }
         let aliquota = getAliquota();
         let regime = getRegimeByData(data);
-        let calc = calcularCampos(venda, produto, despFin, regime, aliquota, possuiRT);
+        let calc = calcularCampos(venda, produto, despFin, regime, aliquota, possuiRT, tipo);
         let mes = formatMesAno(data);
         let novo = { dataRef: data, mes, cliente, venda, produto, despFin, tipo, possuiRT, regime, ...calc };
         await salvarLancamento(novo);
@@ -288,7 +306,7 @@
         let fMes = document.getElementById('filtroMesSelect').value;
         let filtered = lancamentos.filter(l=> (!fCliente || l.cliente.toLowerCase().includes(fCliente)) && (!fMes || l.mes===fMes));
         let tbody = document.getElementById('tbodyLancamentos');
-        if(!filtered.length){ tbody.innerHTML='<tr><td colspan="18">Nenhum lançamento. Clique em LANÇAR.</td></tr>'; atualizarTotaisFiltrados(filtered); return; }
+        if(!filtered.length){ tbody.innerHTML='<tr><td colspan="18">Nenhum lançamento. Clique em LANÇAR.72</tr>'; atualizarTotaisFiltrados(filtered); return; }
         tbody.innerHTML='';
         filtered.forEach(l=>{
             let row = tbody.insertRow();
@@ -342,7 +360,7 @@
                 somaV+=l.venda; somaCmv+=l.cmv; somaLB+=lbExibir; somaVar+=l.variaveis; somaCustos+=l.custosAdm;
                 somaEbitda+= comImposto ? l.ebitda : (lbExibir - ((l.venda-l.despFin)*0.2262 * (l.possuiRT==='sim'?1:0.9)) - (lbExibir*0.1213));
                 somaImp+=impExibir; somaDesp+=l.despFin; somaLucro+=lucroExibir; somaMargem+=margemVal;
-                return `<tr><td style="text-align:left">${l.cliente}</td><td>R$ ${formatarMoeda(l.venda)}</td><td>R$ ${formatarMoeda(l.cmv)}</td><td>R$ ${formatarMoeda(lbExibir)}</td><td>${percLB.toFixed(2)}%</td><td>R$ ${formatarMoeda(l.variaveis)}</td><td>R$ ${formatarMoeda(l.custosAdm)}</td><td>R$ ${formatarMoeda(comImposto?l.ebitda: (lbExibir - ((l.venda-l.despFin)*0.2262*(l.possuiRT==='sim'?1:0.9)) - (lbExibir*0.1213)))}</td><td>R$ ${formatarMoeda(impExibir)}</td><td>R$ ${formatarMoeda(l.despFin)}</td><td style="font-weight:600;">R$ ${formatarMoeda(lucroExibir)}</td><td ${classe}>${percMargem.toFixed(2)}%</td></tr>`;
+                return `<tr><td style="text-align:left">${l.cliente}</td><td>R$ ${formatarMoeda(l.venda)}</td><td>R$ ${formatarMoeda(l.cmv)}</td><td>R$ ${formatarMoeda(lbExibir)}</td><td>${percLB.toFixed(2)}%</td><td>R$ ${formatarMoeda(l.variaveis)}</td><td>R$ ${formatarMoeda(l.custosAdm)}</td><td>R$ ${formatarMoeda(comImposto?l.ebitda: (lbExibir - ((l.venda-l.despFin)*0.2262*(l.possuiRT==='sim'?1:0.9)) - (lbExibir*0.1213)))}</td><td>R$ ${formatarMoeda(impExibir)}</td><td>R$ ${formatarMoeda(l.despFin)}</td><td>R$ ${formatarMoeda(lucroExibir)}</td><td ${classe}>${percMargem.toFixed(2)}%</td></tr>`;
             }).join('');
             let mediaMargem = dados.length ? (somaMargem/dados.length)*100 : 0;
             return `<div class="relatorio-bloco"><div class="relatorio-titulo">${titulo}</div><table class="relatorio-tabela"><thead><tr><th>CLIENTE</th><th>VENDA</th><th>CMV</th><th>LUCRO BRUTO</th><th>% LB</th><th>VARIÁVEIS</th><th>CUSTOS ADM</th><th>EBITDA</th><th>IMPOSTOS</th><th>DESP.FIN</th><th>LUCRO LIQUIDO</th><th>MARGEM</th></tr></thead><tbody>${rows}<tr style="background:#e2e8f0; font-weight:bold;"><td style="text-align:left">TOTAIS/MÉDIA</td><td><strong>R$ ${formatarMoeda(somaV)}</strong></td><td><strong>R$ ${formatarMoeda(somaCmv)}</strong></td><td><strong>R$ ${formatarMoeda(somaLB)}</strong></td><td>-</td><td><strong>R$ ${formatarMoeda(somaVar)}</strong></td><td><strong>R$ ${formatarMoeda(somaCustos)}</strong></td><td><strong>R$ ${formatarMoeda(somaEbitda)}</strong></td><td><strong>R$ ${formatarMoeda(somaImp)}</strong></td><td><strong>R$ ${formatarMoeda(somaDesp)}</strong></td><td><strong>R$ ${formatarMoeda(somaLucro)}</strong></td><td><strong>${mediaMargem.toFixed(2)}%</strong></td></tr></tbody></table></div>`;
@@ -391,7 +409,7 @@
             let newRT = document.getElementById('editRT').value;
             if(!newData || !newCliente || isNaN(newVenda) || isNaN(newProduto)) { alert("Preencha corretamente"); return; }
             let aliq = getAliquota(); let regime = getRegimeByData(newData);
-            let calc = calcularCampos(newVenda, newProduto, newDesp, regime, aliq, newRT);
+            let calc = calcularCampos(newVenda, newProduto, newDesp, regime, aliq, newRT, newTipo);
             Object.assign(l, { dataRef: newData, mes: formatMesAno(newData), cliente: newCliente, venda: newVenda, produto: newProduto, despFin: newDesp, tipo: newTipo, possuiRT: newRT, regime, ...calc });
             await salvarLancamento(l);
             await carregarDados();
@@ -421,7 +439,7 @@
     document.getElementById('relMesSelect').addEventListener('change', atualizarClientesRel);
     document.getElementById('toggleConfig').addEventListener('click', ()=>{ document.getElementById('configPanel').style.display = document.getElementById('configPanel').style.display==='none'?'block':'none'; });
     document.getElementById('openCalculatorBtn').addEventListener('click', ()=> window.open('https://www.google.com/search?q=calculadora','_blank'));
-    document.getElementById('btnSimular').addEventListener('click', ()=>{ let venda=parseMoeda(document.getElementById('vendaInput').value); let produto=parseMoeda(document.getElementById('produtoInput').value); let desp=parseMoeda(document.getElementById('despFinanceirasInput').value); let regime=getRegimeByData(document.getElementById('dataInput').value); let rt=document.getElementById('possuiRTInput').value; let calc=calcularCampos(venda,produto,desp,regime,getAliquota(),rt); document.getElementById('simuladorResultado').innerHTML=`💰 Lucro: R$ ${formatarMoeda(calc.lucroLiquido)} (${(calc.margem*100).toFixed(2)}%)`; });
+    document.getElementById('btnSimular').addEventListener('click', ()=>{ let venda=parseMoeda(document.getElementById('vendaInput').value); let produto=parseMoeda(document.getElementById('produtoInput').value); let desp=parseMoeda(document.getElementById('despFinanceirasInput').value); let regime=getRegimeByData(document.getElementById('dataInput').value); let rt=document.getElementById('possuiRTInput').value; let tipo=document.getElementById('tipoPedidoInput').value; let calc=calcularCampos(venda,produto,desp,regime,getAliquota(),rt,tipo); document.getElementById('simuladorResultado').innerHTML=`💰 Lucro: R$ ${formatarMoeda(calc.lucroLiquido)} (${(calc.margem*100).toFixed(2)}%)`; });
     document.getElementById('exportarRelatorioPDF').addEventListener('click', ()=> exportarPDF('#relatorioContainer','relatorio_breton.pdf'));
     document.getElementById('exportarDashboardPDF').addEventListener('click', ()=> exportarPDF('#dashboardContainer','dashboard_breton.pdf'));
     document.getElementById('btnSimularTaxa').addEventListener('click', calcularTaxaSimulador);
