@@ -87,7 +87,6 @@
             .dashboard-cards { grid-template-columns: repeat(2, 1fr); gap: 8px; }
             .total-footer { flex-direction: column; align-items: center; text-align: center; gap: 8px; }
         }
-        /* PDF specific */
         @media print {
             body { background: white; padding: 0; margin: 0; }
             .container { box-shadow: none; padding: 0; }
@@ -130,7 +129,7 @@
                 <div class="input-field"><label>💰 VENDA</label><input type="text" id="vendaInput" class="moeda" value="1.000,00"></div>
                 <div class="input-field"><label>🏷️ PRODUTO</label><input type="text" id="produtoInput" class="moeda" value="400,00"></div>
                 <div class="input-field"><label>💸 DESP.FINANCEIRAS</label><input type="text" id="despFinanceirasInput" class="moeda" value="0,00"></div>
-                <div class="input-field"><label>📦 TIPO PEDIDO</label><select id="tipoPedidoInput"><option>OC</option><option>SR</option><option>OC/SR</option></select></div>
+                <div class="input-field"><label>📦 TIPO PEDIDO</label><select id="tipoPedidoInput"><option>OC</option><option>SR</option><option>OC/SR</option><option>Assistencia</option></select></div>
                 <div class="input-field"><label>🏷️ POSSUI RT?</label><select id="possuiRTInput"><option value="sim">Sim</option><option value="nao" selected>Não</option></select></div>
             </div>
             <div class="simulador-area">
@@ -201,16 +200,16 @@
             <h4 style="margin: 24px 0 12px;">📋 Tabela de Referência - Financiamento</h4>
             <div class="table-wrapper"><table class="tabela-taxas"><thead><tr><th>Parcelas</th><th>30 dias</th><th>60 dias</th><th>90 dias</th></tr></thead>
             <tbody>
-                <tr><td>1</td><td>2,43%</td><td>4,80%</td><td>7,11%</td></tr>
-                <tr><td>2</td><td>3,61%</td><td>5,96%</td><td>8,24%</td></tr>
-                <tr><td>3</td><td>4,78%</td><td>7,09%</td><td>9,35%</td></tr>
-                <tr><td>4</td><td>5,93%</td><td>8,21%</td><td>10,44%</td></tr>
-                <tr><td>5</td><td>7,06%</td><td>9,31%</td><td>11,52%</td></tr>
-                <tr><td>6</td><td>8,17%</td><td>10,40%</td><td>12,58%</td></tr>
-                <tr><td>7</td><td>8,91%</td><td>11,04%</td><td>13,12%</td></tr>
-                <tr><td>8</td><td>9,95%</td><td>12,05%</td><td>14,11%</td></tr>
-                <tr><td>9</td><td>10,97%</td><td>13,05%</td><td>15,08%</td></tr>
-                <tr><td>10</td><td>11,98%</td><td>14,03%</td><td>16,04%</td></tr>
+                <tr><td style="text-align:center">1</td><td style="text-align:center">2,43%</td><td style="text-align:center">4,80%</td><td style="text-align:center">7,11%</td></tr>
+                <tr><td style="text-align:center">2</td><td style="text-align:center">3,61%</td><td style="text-align:center">5,96%</td><td style="text-align:center">8,24%</td></tr>
+                <tr><td style="text-align:center">3</td><td style="text-align:center">4,78%</td><td style="text-align:center">7,09%</td><td style="text-align:center">9,35%</td></tr>
+                <tr><td style="text-align:center">4</td><td style="text-align:center">5,93%</td><td style="text-align:center">8,21%</td><td style="text-align:center">10,44%</td></tr>
+                <tr><td style="text-align:center">5</td><td style="text-align:center">7,06%</td><td style="text-align:center">9,31%</td><td style="text-align:center">11,52%</td></tr>
+                <tr><td style="text-align:center">6</td><td style="text-align:center">8,17%</td><td style="text-align:center">10,40%</td><td style="text-align:center">12,58%</td></tr>
+                <tr><td style="text-align:center">7</td><td style="text-align:center">8,91%</td><td style="text-align:center">11,04%</td><td style="text-align:center">13,12%</td></tr>
+                <tr><td style="text-align:center">8</td><td style="text-align:center">9,95%</td><td style="text-align:center">12,05%</td><td style="text-align:center">14,11%</td></tr>
+                <tr><td style="text-align:center">9</td><td style="text-align:center">10,97%</td><td style="text-align:center">13,05%</td><td style="text-align:center">15,08%</td></tr>
+                <tr><td style="text-align:center">10</td><td style="text-align:center">11,98%</td><td style="text-align:center">14,03%</td><td style="text-align:center">16,04%</td></tr>
             </tbody>
             <div style="margin-top: 16px; font-size: 0.7rem; background: #eef2f7; padding: 8px; border-radius: 12px;">💡 <strong>Regras Cartão:</strong> 1 parcela = 2,06% | 2-6x = 2,33% | 7-12x = 2,63%</div>
         </div>
@@ -235,12 +234,23 @@
     function getRegimeByData(dataStr) { return new Date(dataStr).getFullYear() < 2026 ? "Presumido" : "Simples"; }
     function formatMesAno(dataStr) { let d = new Date(dataStr); return `${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getFullYear()}`; }
     
+    // Função de cálculo de impostos atualizada com opção Assistencia (ISENTO)
     function calcularImpostos(venda, regime, aliquotaSimples, tipoPedido) {
         if(regime === "Simples") {
             let impV = venda * (aliquotaSimples / 100);
             return { impostoVenda: impV, impostoLucro: 0 };
         }
-        let aliquotaVenda = tipoPedido === "OC" ? 0.2165 : (tipoPedido === "OC/SR" ? 0.1265 : 0.0365);
+        // Regime Presumido - varia conforme tipo de pedido
+        let aliquotaVenda = 0;
+        if(tipoPedido === "OC") {
+            aliquotaVenda = 0.2165; // PIS 0,65% + COFINS 3% + ICMS 18% = 21,65%
+        } else if(tipoPedido === "OC/SR") {
+            aliquotaVenda = 0.1265; // PIS 0,65% + COFINS 3% + ICMS 9% = 12,65%
+        } else if(tipoPedido === "SR") {
+            aliquotaVenda = 0.0365; // PIS 0,65% + COFINS 3% + ICMS 0% = 3,65%
+        } else if(tipoPedido === "Assistencia") {
+            aliquotaVenda = 0; // ISENTO de impostos sobre venda
+        }
         return { impostoVenda: venda * aliquotaVenda, impostoLucro: venda * 0.0228 };
     }
     
@@ -305,7 +315,7 @@
         let fMes = document.getElementById('filtroMesSelect').value;
         let filtered = lancamentos.filter(l=> (!fCliente || l.cliente.toLowerCase().includes(fCliente)) && (!fMes || l.mes===fMes));
         let tbody = document.getElementById('tbodyLancamentos');
-        if(!filtered.length){ tbody.innerHTML='<td><td colspan="18">Nenhum lançamento. Clique em LANÇAR.72</td></tr>'; atualizarTotaisFiltrados(filtered); return; }
+        if(!filtered.length){ tbody.innerHTML='<tr><td colspan="18">Nenhum lançamento. Clique em LANÇAR.72</td></table>'; atualizarTotaisFiltrados(filtered); return; }
         tbody.innerHTML='';
         filtered.forEach(l=>{
             let row = tbody.insertRow();
@@ -359,8 +369,7 @@
                 somaV+=l.venda; somaCmv+=l.cmv; somaLB+=lbExibir; somaVar+=l.variaveis; somaCustos+=l.custosAdm;
                 somaEbitda+= comImposto ? l.ebitda : (lbExibir - ((l.venda-l.despFin)*0.2262 * (l.possuiRT==='sim'?1:0.9)) - (lbExibir*0.1213));
                 somaImp+=impExibir; somaDesp+=l.despFin; somaLucro+=lucroExibir; somaMargem+=margemVal;
-                return `<tr>
-                    <td style="text-align:left">${l.cliente}</td>
+                return `<tr><td style="text-align:left">${l.cliente}</td>
                     <td>${formatarMoeda(l.venda)}</td>
                     <td>${formatarMoeda(l.cmv)}</td>
                     <td>${formatarMoeda(lbExibir)}</td>
@@ -426,7 +435,7 @@
         let l = lancamentos.find(l=>l.id===id);
         if(!l) return;
         let modal = document.createElement('div'); modal.className='modal';
-        modal.innerHTML = `<div class="modal-content"><h3>✏️ Editar Lançamento</h3><div style="display:grid; gap:12px;"><div><label>DATA</label><input type="date" id="editData" value="${l.dataRef}"></div><div><label>CLIENTE</label><input type="text" id="editCliente" value="${l.cliente}"></div><div><label>VENDA</label><input type="text" id="editVenda" class="moeda" value="${formatarMoeda(l.venda)}"></div><div><label>PRODUTO</label><input type="text" id="editProduto" class="moeda" value="${formatarMoeda(l.produto)}"></div><div><label>DESP.FIN</label><input type="text" id="editDespFin" class="moeda" value="${formatarMoeda(l.despFin)}"></div><div><label>TIPO</label><select id="editTipo"><option>OC</option><option>SR</option><option>OC/SR</option></select></div><div><label>POSSUI RT?</label><select id="editRT"><option value="sim">Sim</option><option value="nao">Não</option></select></div><div style="display:flex; gap:12px; justify-content:flex-end;"><button id="saveEditBtn" class="btn-lancar">💾 Salvar</button><button id="cancelEditBtn" class="btn-excel">Cancelar</button></div></div></div>`;
+        modal.innerHTML = `<div class="modal-content"><h3>✏️ Editar Lançamento</h3><div style="display:grid; gap:12px;"><div><label>DATA</label><input type="date" id="editData" value="${l.dataRef}"></div><div><label>CLIENTE</label><input type="text" id="editCliente" value="${l.cliente}"></div><div><label>VENDA</label><input type="text" id="editVenda" class="moeda" value="${formatarMoeda(l.venda)}"></div><div><label>PRODUTO</label><input type="text" id="editProduto" class="moeda" value="${formatarMoeda(l.produto)}"></div><div><label>DESP.FIN</label><input type="text" id="editDespFin" class="moeda" value="${formatarMoeda(l.despFin)}"></div><div><label>TIPO</label><select id="editTipo"><option>OC</option><option>SR</option><option>OC/SR</option><option>Assistencia</option></select></div><div><label>POSSUI RT?</label><select id="editRT"><option value="sim">Sim</option><option value="nao">Não</option></select></div><div style="display:flex; gap:12px; justify-content:flex-end;"><button id="saveEditBtn" class="btn-lancar">💾 Salvar</button><button id="cancelEditBtn" class="btn-excel">Cancelar</button></div></div></div>`;
         document.body.appendChild(modal);
         document.getElementById('editTipo').value = l.tipo;
         document.getElementById('editRT').value = l.possuiRT || 'nao';
@@ -463,13 +472,7 @@
     function exportarPDF(sel, name) { 
         let element = document.querySelector(sel);
         if(!element) return;
-        let opt = {
-            margin: [0.5, 0.5, 0.5, 0.5],
-            filename: name,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, letterRendering: true, useCORS: true },
-            jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
-        };
+        let opt = { margin: [0.5, 0.5, 0.5, 0.5], filename: name, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, letterRendering: true, useCORS: true }, jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' } };
         html2pdf().set(opt).from(element).save();
     }
     document.getElementById('btnLancar').addEventListener('click', adicionarLancamento);
