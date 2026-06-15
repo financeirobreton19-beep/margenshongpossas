@@ -35,7 +35,8 @@
         .input-field input, .input-field select { padding: 8px 10px; border-radius: 14px; border: 1.5px solid #dce5ec; font-size: 0.85rem; }
         .produtos-lista { background: #f8fafc; border-radius: 16px; padding: 12px; margin-top: 12px; }
         .produto-item { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: white; padding: 8px 12px; margin-bottom: 8px; border-radius: 12px; border: 1px solid #e2edf7; }
-        .produto-item input { flex: 1; min-width: 100px; padding: 6px 8px; border-radius: 10px; border: 1px solid #dce5ec; }
+        .produto-item input { flex: 1; min-width: 100px; padding: 8px 10px; border-radius: 10px; border: 1px solid #dce5ec; font-size: 0.85rem; }
+        .produto-item input:focus { outline: none; border-color: #2c7cb6; }
         .produto-item button { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #b91c1c; padding: 0 8px; }
         .add-produto-btn { background: #2c7cb6; color: white; border: none; padding: 6px 16px; border-radius: 30px; cursor: pointer; font-size: 0.75rem; margin-top: 8px; }
         .total-produto { font-weight: bold; text-align: right; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd; color: #1e3a5f; }
@@ -59,6 +60,7 @@
         .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
         .pagination button { background: #eef2f7; border: none; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-weight: 500; }
         .pagination button.active { background: #1a6d3c; color: white; }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
         .relatorio-bloco { margin-bottom: 40px; border: 1px solid #e2edf7; border-radius: 20px; padding: 16px; background: #fefefe; overflow-x: auto; }
         .relatorio-titulo { background: #1e3a5f; color: white; padding: 8px 16px; border-radius: 16px; margin-bottom: 16px; font-size: 0.85rem; text-align: center; }
         .relatorio-tabela { width: 100%; border-collapse: collapse; font-size: 0.65rem; min-width: 900px; }
@@ -88,7 +90,6 @@
             .tab-btn { padding: 8px 10px; font-size: 0.7rem; }
             .form-grid { grid-template-columns: 1fr; gap: 10px; }
             .top-header { flex-direction: column; align-items: flex-start; }
-            .title-area h1 { font-size: 1.2rem; }
             .btn-lancar, .btn-excel, .btn-pdf { padding: 8px 14px; font-size: 0.75rem; width: 100%; text-align: center; }
             .filter-bar { flex-direction: column; align-items: stretch; }
             .filter-group { width: 100%; }
@@ -133,7 +134,7 @@
     <div id="tab1" class="tab-content active">
         <div class="form-card">
             <div class="form-grid">
-                <div class="input-field"><label>📅 DATA</label><input type="date" id="dataInput" value="2026-06-09"></div>
+                <div class="input-field"><label>📅 DATA</label><input type="date" id="dataInput" value="2026-06-10"></div>
                 <div class="input-field"><label>👤 CLIENTE</label><input type="text" id="clienteInput" list="clientesList" placeholder="Digite ou selecione"><datalist id="clientesList"></datalist></div>
                 <div class="input-field"><label>💰 VENDA (R$)</label><input type="text" id="vendaInput" class="moeda" value="1.000,00"></div>
                 <div class="input-field"><label>💸 DESP.FINANCEIRAS (R$)</label><input type="text" id="despFinanceirasInput" class="moeda" value="0,00"></div>
@@ -171,7 +172,6 @@
             </table>
         </div>
         
-        <!-- PAGINAÇÃO -->
         <div class="pagination" id="pagination"></div>
         
         <div class="total-footer" id="totalFooter"></div>
@@ -183,7 +183,7 @@
         <div class="relatorio-filtros">
             <div class="filter-group"><label>📆 MÊS</label><select id="relMesSelect"><option value="">Selecione um mês</option></select></div>
             <div class="filter-group"><label>👤 CLIENTE</label><select id="relClienteSelect"><option value="">Todos os clientes</option></select></div>
-            <button class="btn-relatorio" id="btnGerarRelatorio">📊 Gerar</button>
+            <button class="btn-relatorio" id="btnGerarRelatorio">🔎 BUSCAR</button>
         </div>
         <div id="relatorioContainer"></div>
     </div>
@@ -232,7 +232,6 @@
                 <tr><td style="text-align:center">9</td><td style="text-align:center">10,97%</td><td style="text-align:center">13,05%</td><td style="text-align:center">15,08%</td></tr>
                 <tr><td style="text-align:center">10</td><td style="text-align:center">11,98%</td><td style="text-align:center">14,03%</td><td style="text-align:center">16,04%</td></tr>
             </tbody>
-            </table></div>
             <div style="margin-top: 16px; font-size: 0.7rem; background: #eef2f7; padding: 8px; border-radius: 12px;">💡 <strong>Regras Cartão:</strong> 1 parcela = 2,06% | 2-6x = 2,33% | 7-12x = 2,63%</div>
         </div>
     </div>
@@ -251,9 +250,13 @@
     const db = firebase.firestore();
 
     // ========== FUNÇÕES AUXILIARES ==========
-    function maskMoeda(el) { let v = el.value.replace(/\D/g,''); v = (parseInt(v)/100).toFixed(2); if(isNaN(v)) v='0.00'; el.value = formatarMoeda(parseFloat(v)); }
     function formatarMoeda(valor) { return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-    function parseMoeda(str) { return parseFloat(str.replace(/\./g,'').replace(',','.')) || 0; }
+    function parseMoeda(str) { 
+        if (!str) return 0;
+        let cleaned = str.toString().replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
+        return parseFloat(cleaned) || 0;
+    }
+    
     function getRegimeByData(dataStr) { return new Date(dataStr).getFullYear() < 2026 ? "Presumido" : "Simples"; }
     function formatMesAno(dataStr) { let d = new Date(dataStr); return `${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getFullYear()}`; }
     function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
@@ -279,7 +282,7 @@
         return { impostoVenda, freteEmb, cmv, lucroBruto, percLB, variaveis, custosAdm, ebitda, impostoLucro, lucroLiquido, margem };
     }
 
-    // ========== MÚLTIPLOS PRODUTOS ==========
+    // ========== MÚLTIPLOS PRODUTOS COM DIGITAÇÃO LIVRE ==========
     let produtosItens = [];
     
     function renderizarProdutos() {
@@ -298,7 +301,7 @@
             html += `
                 <div class="produto-item">
                     <input type="text" placeholder="Nome do produto" value="${escapeHtml(item.nome)}" data-idx="${idx}" data-field="nome" style="flex:1">
-                    <input type="text" class="moeda-produto" placeholder="Valor (R$)" value="${formatarMoeda(item.valor)}" data-idx="${idx}" data-field="valor" style="width:120px">
+                    <input type="text" class="valor-produto" placeholder="Valor (R$)" value="${formatarMoeda(item.valor)}" data-idx="${idx}" data-field="valor" style="width:120px">
                     <input type="date" value="${item.data}" data-idx="${idx}" data-field="data" style="width:120px">
                     <button onclick="removerProduto(${idx})">🗑️</button>
                 </div>
@@ -308,8 +311,13 @@
         document.getElementById('totalProdutoDisplay').innerHTML = `💰 TOTAL PRODUTO: ${formatarMoeda(total)}`;
         document.getElementById('produtoTotal').value = total;
         
-        document.querySelectorAll('.moeda-produto').forEach(el => {
-            el.addEventListener('input', function() { maskMoeda(this); atualizarProdutoFromInput(this); });
+        // CORREÇÃO: formata apenas ao sair do campo (blur) - permite digitar números grandes livremente
+        document.querySelectorAll('.valor-produto').forEach(el => {
+            el.addEventListener('blur', function() { 
+                let val = parseMoeda(this.value);
+                this.value = formatarMoeda(val);
+                atualizarProdutoFromInput(this);
+            });
         });
         document.querySelectorAll('.produto-item input[data-field="nome"]').forEach(el => {
             el.addEventListener('change', function() { atualizarProdutoFromInput(this); });
@@ -430,7 +438,6 @@
             });
         }
         
-        // Paginação
         const pagDiv = document.getElementById('pagination');
         if(totalPages <= 1) { pagDiv.innerHTML = ''; return; }
         let pagHtml = `<button ${currentPage===1?'disabled':''} onclick="mudarPagina(${currentPage-1})">◀ Anterior</button>`;
@@ -530,15 +537,20 @@
                 total += item.valor;
                 html += `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; background:#f8fafc; padding:8px; border-radius:12px;">
                     <input type="text" placeholder="Nome" value="${escapeHtml(item.nome)}" data-edit-idx="${idx}" data-edit-field="nome" style="flex:1; padding:6px; border-radius:10px; border:1px solid #ccc;">
-                    <input type="text" placeholder="Valor" class="moeda-edit" value="${formatarMoeda(item.valor)}" data-edit-idx="${idx}" data-edit-field="valor" style="width:120px;">
+                    <input type="text" placeholder="Valor" class="valor-produto-edit" value="${formatarMoeda(item.valor)}" data-edit-idx="${idx}" data-edit-field="valor" style="width:120px;">
                     <input type="date" value="${item.data}" data-edit-idx="${idx}" data-edit-field="data" style="width:120px;">
                     <button onclick="editarRemoverProduto(${idx})" style="background:none; border:none; font-size:1.2rem; color:#b91c1c;">🗑️</button>
                 </div>`;
             });
             container.innerHTML = html;
             document.getElementById('editTotalProdutoDisplay').innerHTML = `💰 TOTAL: ${formatarMoeda(total)}`;
-            document.querySelectorAll('.moeda-edit').forEach(el => {
-                el.addEventListener('input', function() { maskMoeda(this); editarAtualizarProdutoFromInput(this); });
+            
+            document.querySelectorAll('.valor-produto-edit').forEach(el => {
+                el.addEventListener('blur', function() { 
+                    let val = parseMoeda(this.value);
+                    this.value = formatarMoeda(val);
+                    editarAtualizarProdutoFromInput(this);
+                });
             });
             document.querySelectorAll('#editProdutosContainer input[data-edit-field="nome"]').forEach(el => {
                 el.addEventListener('change', function() { editarAtualizarProdutoFromInput(this); });
@@ -587,13 +599,22 @@
         document.getElementById('cancelEditBtn').onclick = () => modal.remove();
     }
 
-    // ========== RELATÓRIOS ==========
+    // ========== RELATÓRIOS COM BOTÃO BUSCAR ==========
     function gerarRelatorioUI() {
         let mes = document.getElementById('relMesSelect').value;
         let clienteSel = document.getElementById('relClienteSelect').value;
-        let filtered = lancamentos.filter(l=> (!mes || l.mes===mes) && (!clienteSel || l.cliente===clienteSel));
+        
+        let filtered = lancamentos.filter(l => {
+            let matchMes = (!mes || l.mes === mes);
+            let matchCliente = (!clienteSel || l.cliente === clienteSel);
+            return matchMes && matchCliente;
+        });
+        
         let container = document.getElementById('relatorioContainer');
-        if(!filtered.length){ container.innerHTML='<div>Nenhum resultado</div>'; return; }
+        if(!filtered.length){ 
+            container.innerHTML='<div style="padding:20px; text-align:center;">Nenhum resultado encontrado</div>'; 
+            return; 
+        }
         let exibe = mes || "GERAL";
         
         function montarTabela(titulo, dados, comImposto=true) {
@@ -609,17 +630,37 @@
                 somaV+=l.venda; somaCmv+=l.cmv; somaLB+=lbExibir; somaVar+=l.variaveis; somaCustos+=l.custosAdm;
                 somaEbitda+= comImposto ? l.ebitda : (lbExibir - ((l.venda-l.despFin)*0.2262 * (l.possuiRT==='sim'?1:0.9)) - (lbExibir*0.1213));
                 somaImp+=impExibir; somaDesp+=l.despFin; somaLucro+=lucroExibir; somaMargem+=margemVal;
-                return `<tr><td style="text-align:left">${l.cliente}</td><td>${formatarMoeda(l.venda)}</td><td>${formatarMoeda(l.cmv)}</td><td>${formatarMoeda(lbExibir)}</td><td>${percLB.toFixed(2)}%</td><td>${formatarMoeda(l.variaveis)}</td><td>${formatarMoeda(l.custosAdm)}</td><td>${formatarMoeda(comImposto?l.ebitda: (lbExibir - ((l.venda-l.despFin)*0.2262*(l.possuiRT==='sim'?1:0.9)) - (lbExibir*0.1213)))}</td><td>${formatarMoeda(impExibir)}</td><td>${formatarMoeda(l.despFin)}</td><td>${formatarMoeda(lucroExibir)}</td><td ${classe}>${percMargem.toFixed(2)}%</td></tr>`;
+                return `<tr>
+                    <td style="text-align:left">${l.cliente}</td>
+                    <td>${formatarMoeda(l.venda)}</td>
+                    <td>${formatarMoeda(l.cmv)}</td>
+                    <td>${formatarMoeda(lbExibir)}</td>
+                    <td>${percLB.toFixed(2)}%</td>
+                    <td>${formatarMoeda(l.variaveis)}</td>
+                    <td>${formatarMoeda(l.custosAdm)}</td>
+                    <td>${formatarMoeda(comImposto?l.ebitda: (lbExibir - ((l.venda-l.despFin)*0.2262*(l.possuiRT==='sim'?1:0.9)) - (lbExibir*0.1213)))}</td>
+                    <td>${formatarMoeda(impExibir)}</td>
+                    <td>${formatarMoeda(l.despFin)}</td>
+                    <td>${formatarMoeda(lucroExibir)}</td>
+                    <td ${classe}>${percMargem.toFixed(2)}%</td>
+                </tr>`;
             }).join('');
             let mediaMargem = dados.length ? (somaMargem/dados.length)*100 : 0;
             return `<div class="relatorio-bloco"><div class="relatorio-titulo">${titulo}</div>
             <table class="relatorio-tabela"><thead><tr><th>CLIENTE</th><th>VENDA</th><th>CMV</th><th>LUCRO BRUTO</th><th>% LB</th><th>VARIÁVEIS</th><th>CUSTOS ADM</th><th>EBITDA</th><th>IMPOSTOS</th><th>DESP.FIN</th><th>LUCRO LIQUIDO</th><th>MARGEM</th></tr></thead>
-            <tbody>${rows}<tr style="background:#e2e8f0;"><td style="text-align:left"><strong>TOTAIS/MÉDIA</strong></td>
-                <td><strong>${formatarMoeda(somaV)}</strong></td><td><strong>${formatarMoeda(somaCmv)}</strong></td><td><strong>${formatarMoeda(somaLB)}</strong></td><td>-</td>
-                <td><strong>${formatarMoeda(somaVar)}</strong></td><td><strong>${formatarMoeda(somaCustos)}</strong></td><td><strong>${formatarMoeda(somaEbitda)}</strong></td>
-                <td><strong>${formatarMoeda(somaImp)}</strong></td><td><strong>${formatarMoeda(somaDesp)}</strong></td><td><strong>${formatarMoeda(somaLucro)}</strong></td>
-                <td><strong>${mediaMargem.toFixed(2)}%</strong></td></tr>
-            </tbody></table></div>`;
+            <tbody>${rows}<tr style="background:#e2e8f0; font-weight:bold;"><td style="text-align:left">TOTAIS/MÉDIA</td>
+                <td>${formatarMoeda(somaV)}</td>
+                <td>${formatarMoeda(somaCmv)}</td>
+                <td>${formatarMoeda(somaLB)}</td>
+                <td>-</td>
+                <td>${formatarMoeda(somaVar)}</td>
+                <td>${formatarMoeda(somaCustos)}</td>
+                <td>${formatarMoeda(somaEbitda)}</td>
+                <td>${formatarMoeda(somaImp)}</td>
+                <td>${formatarMoeda(somaDesp)}</td>
+                <td>${formatarMoeda(somaLucro)}</td>
+                <td>${mediaMargem.toFixed(2)}%</td>
+            </tr></tbody></table></div>`;
         }
         container.innerHTML = montarTabela(`📊 BRETON - ${exibe} (COM IMPOSTOS)`, filtered, true) + montarTabela(`📊 BRETON - ${exibe} (SEM IMPOSTOS)`, filtered, false);
     }
@@ -654,7 +695,7 @@
         let tabelaCli = Array.from(clienteMap.keys()).sort().map(c=>`<tr><td style="text-align:left">${c}</td><td>${formatarMoeda(clienteMap.get(c).venda)}</td><td>${formatarMoeda(clienteMap.get(c).lucro)}</td><td>${((clienteMap.get(c).lucro/clienteMap.get(c).venda)*100).toFixed(2)}%</td></tr>`).join('');
         let totalGeralVenda = filtered.reduce((s,l)=>s+l.venda,0);
         let totalGeralLucro = filtered.reduce((s,l)=>s+(comImposto?l.lucroLiquido:(l.venda - l.cmv - ((l.venda-l.despFin)*0.2262*(l.possuiRT==='sim'?1:0.9)) - ((l.venda-l.cmv)*0.1213) - l.despFin)),0);
-        document.getElementById('visaoGeral').innerHTML = `<h4>📊 VISÃO GERAL DO NEGÓCIO</h4><div class="table-wrapper"><table class="resumo-table"><thead><tr><th>CLIENTE</th><th>VENDAS</th><th>LUCRO</th><th>MARGEM</th></tr></thead><tbody>${tabelaCli}<tr style="background:#e2e8f0;"><td style="text-align:left"><strong>TOTAL</strong></td><td><strong>${formatarMoeda(totalGeralVenda)}</strong></td><td><strong>${formatarMoeda(totalGeralLucro)}</strong></td><td><strong>${((totalGeralLucro/totalGeralVenda)*100).toFixed(2)}%</strong></td></tr></tbody></table></div>`;
+        document.getElementById('visaoGeral').innerHTML = `<h4>📊 VISÃO GERAL DO NEGÓCIO</h4><div class="table-wrapper"><table class="resumo-table"><thead><tr><th>CLIENTE</th><th>VENDAS</th><th>LUCRO</th><th>MARGEM</th></tr></thead><tbody>${tabelaCli}<tr style="background:#e2e8f0; font-weight:bold;"><td style="text-align:left">TOTAL</td><td>${formatarMoeda(totalGeralVenda)}</td><td>${formatarMoeda(totalGeralLucro)}</td><td>${((totalGeralLucro/totalGeralVenda)*100).toFixed(2)}%</td></tr></tbody></table></div>`;
     }
 
     // ========== SIMULADOR DE TAXAS ==========
@@ -664,9 +705,14 @@
         let parcelas = parseInt(document.getElementById('finParcelas').value);
         let prazo = parseInt(document.getElementById('finPrazo').value);
         let taxa = 0;
-        if(forma==='cartao') { if(parcelas===1) taxa=0.0206; else if(parcelas<=6) taxa=0.0233; else taxa=0.0263; }
-        else { let tabela={1:{30:0.0243,60:0.0480,90:0.0711},2:{30:0.0361,60:0.0596,90:0.0824},3:{30:0.0478,60:0.0709,90:0.0935},4:{30:0.0593,60:0.0821,90:0.1044},5:{30:0.0706,60:0.0931,90:0.1152},6:{30:0.0817,60:0.1040,90:0.1258},7:{30:0.0891,60:0.1104,90:0.1312},8:{30:0.0995,60:0.1205,90:0.1411},9:{30:0.1097,60:0.1305,90:0.1508},10:{30:0.1198,60:0.1403,90:0.1604}};
-        if(tabela[parcelas] && tabela[parcelas][prazo]) taxa = tabela[parcelas][prazo]; }
+        if(forma==='cartao') { 
+            if(parcelas===1) taxa=0.0206; 
+            else if(parcelas<=6) taxa=0.0233; 
+            else taxa=0.0263; 
+        } else { 
+            let tabela={1:{30:0.0243,60:0.0480,90:0.0711},2:{30:0.0361,60:0.0596,90:0.0824},3:{30:0.0478,60:0.0709,90:0.0935},4:{30:0.0593,60:0.0821,90:0.1044},5:{30:0.0706,60:0.0931,90:0.1152},6:{30:0.0817,60:0.1040,90:0.1258},7:{30:0.0891,60:0.1104,90:0.1312},8:{30:0.0995,60:0.1205,90:0.1411},9:{30:0.1097,60:0.1305,90:0.1508},10:{30:0.1198,60:0.1403,90:0.1604}};
+            if(tabela[parcelas] && tabela[parcelas][prazo]) taxa = tabela[parcelas][prazo];
+        }
         let valorTaxa = valor*taxa, valorLiquido = valor - valorTaxa;
         document.getElementById('resultadoTaxa').innerHTML = `<strong>📊 Resultado:</strong><br>Taxa aplicada: ${(taxa*100).toFixed(2)}%<br>Valor da taxa: ${formatarMoeda(valorTaxa)}<br>Valor líquido: ${formatarMoeda(valorLiquido)}`;
     }
@@ -696,7 +742,7 @@
     document.getElementById('addProdutoBtn').addEventListener('click', adicionarProdutoVazio);
     document.getElementById('relMesSelect').addEventListener('change', atualizarClientesRel);
     
-    document.querySelectorAll('.moeda').forEach(el => { el.addEventListener('input', function() { maskMoeda(this); }); maskMoeda(el); });
+    document.querySelectorAll('.moeda').forEach(el => { el.addEventListener('blur', function() { let val = parseMoeda(this.value); this.value = formatarMoeda(val); }); });
     document.querySelectorAll('.tab-btn').forEach(btn => { btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
