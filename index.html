@@ -96,6 +96,7 @@
             .dashboard-cards { grid-template-columns: repeat(2, 1fr); gap: 8px; }
             .total-footer { flex-direction: column; align-items: center; text-align: center; gap: 8px; }
             .produto-item { flex-direction: column; align-items: stretch; }
+            .tabela-taxas { font-size: 0.55rem; }
         }
         @media print {
             body { background: white; padding: 0; margin: 0; }
@@ -206,7 +207,7 @@
         </div>
     </div>
 
-    <!-- ABA 4 - TAR. FINANCEIRAS -->
+    <!-- ABA 4 - TAR. FINANCEIRAS (com nova tabela) -->
     <div id="tab4" class="tab-content">
         <div class="simulador-financeiro">
             <h3 style="margin-bottom: 20px; font-size: 1.1rem;">💳 Simulador de Taxas - Cartão / Financiamento</h3>
@@ -214,31 +215,53 @@
                 <div class="input-field"><label>👤 CLIENTE</label><input type="text" id="finCliente" placeholder="Nome do cliente"></div>
                 <div class="input-field"><label>💰 VALOR</label><input type="text" id="finValor" class="moeda" value="10.000,00"></div>
                 <div class="input-field"><label>💳 FORMA DE PAGAMENTO</label><select id="finForma"><option value="cartao">Cartão</option><option value="financiamento">Financiamento</option></select></div>
-                <div class="input-field"><label>📦 PARCELAS</label><select id="finParcelas"><option value="1">1 parcela</option><option value="2">2 parcelas</option><option value="3">3 parcelas</option><option value="4">4 parcelas</option><option value="5">5 parcelas</option><option value="6">6 parcelas</option><option value="7">7 parcelas</option><option value="8">8 parcelas</option><option value="9">9 parcelas</option><option value="10">10 parcelas</option></select></div>
+                <div class="input-field"><label>📦 PARCELAS</label><select id="finParcelas"><option value="1">1 parcela</option><option value="2">2 parcelas</option><option value="3">3 parcelas</option><option value="4">4 parcelas</option><option value="5">5 parcelas</option><option value="6">6 parcelas</option><option value="7">7 parcelas</option><option value="8">8 parcelas</option><option value="9">9 parcelas</option><option value="10">10 parcelas</option><option value="11">11 parcelas</option><option value="12">12 parcelas</option><option value="13">13 parcelas</option><option value="14">14 parcelas</option><option value="15">15 parcelas</option><option value="16">16 parcelas</option><option value="17">17 parcelas</option><option value="18">18 parcelas</option><option value="19">19 parcelas</option><option value="20">20 parcelas</option><option value="21">21 parcelas</option><option value="22">22 parcelas</option><option value="23">23 parcelas</option><option value="24">24 parcelas</option></select></div>
                 <div class="input-field" id="campoPrazo" style="display:none;"><label>⏱️ PRAZO</label><select id="finPrazo"><option value="30">30 dias</option><option value="60">60 dias</option><option value="90">90 dias</option></select></div>
             </div>
             <button class="btn-lancar" id="btnSimularTaxa" style="margin-top: 10px;">🔮 Calcular Taxa</button>
-            <div class="resultado-simulador" id="resultadoTaxa"><strong>📊 Resultado:</strong><br>Taxa aplicada: --<br>Valor da taxa: --<br>Valor líquido: --</div>
+            <div class="resultado-simulador" id="resultadoTaxa"><strong>📊 Resultado:</strong><br>Coeficiente: --<br>Retenção: --<br>Valor líquido: --</div>
             <h4 style="margin: 24px 0 12px;">📋 Tabela de Referência - Financiamento</h4>
-            <div class="table-wrapper"><table class="tabela-taxas"><thead><tr><th>Parcelas</th><th>30 dias</th><th>60 dias</th><th>90 dias</th></tr></thead>
-            <tbody>
-                <tr><td style="text-align:center">1</td><td style="text-align:center">2,43%</td><td style="text-align:center">4,80%</td><td style="text-align:center">7,11%</td></tr>
-                <tr><td style="text-align:center">2</td><td style="text-align:center">3,61%</td><td style="text-align:center">5,96%</td><td style="text-align:center">8,24%</td></tr>
-                <tr><td style="text-align:center">3</td><td style="text-align:center">4,78%</td><td style="text-align:center">7,09%</td><td style="text-align:center">9,35%</td></tr>
-                <tr><td style="text-align:center">4</td><td style="text-align:center">5,93%</td><td style="text-align:center">8,21%</td><td style="text-align:center">10,44%</td></tr>
-                <tr><td style="text-align:center">5</td><td style="text-align:center">7,06%</td><td style="text-align:center">9,31%</td><td style="text-align:center">11,52%</td></tr>
-                <tr><td style="text-align:center">6</td><td style="text-align:center">8,17%</td><td style="text-align:center">10,40%</td><td style="text-align:center">12,58%</td></tr>
-                <tr><td style="text-align:center">7</td><td style="text-align:center">8,91%</td><td style="text-align:center">11,04%</td><td style="text-align:center">13,12%</td></tr>
-                <tr><td style="text-align:center">8</td><td style="text-align:center">9,95%</td><td style="text-align:center">12,05%</td><td style="text-align:center">14,11%</td></tr>
-                <tr><td style="text-align:center">9</td><td style="text-align:center">10,97%</td><td style="text-align:center">13,05%</td><td style="text-align:center">15,08%</td></tr>
-                <tr><td style="text-align:center">10</td><td style="text-align:center">11,98%</td><td style="text-align:center">14,03%</td><td style="text-align:center">16,04%</td></tr>
-            </tbody>
-            <div style="margin-top: 16px; font-size: 0.7rem; background: #eef2f7; padding: 8px; border-radius: 12px;">💡 <strong>Regras Cartão:</strong> 1 parcela = 2,06% | 2-6x = 2,33% | 7-12x = 2,63%</div>
+            <div class="table-wrapper"><table class="tabela-taxas" id="tabelaFinanciamento">
+                <thead><tr><th rowspan="2">Parcelas</th><th colspan="2">30 dias</th><th colspan="2">60 dias</th><th colspan="2">90 dias</th></tr>
+                <tr><th>Coeficiente</th><th>Retenção</th><th>Coeficiente</th><th>Retenção</th><th>Coeficiente</th><th>Retenção</th></tr></thead>
+                <tbody id="tabelaFinanciamentoBody"></tbody>
+            </table></div>
+            <div style="margin-top: 16px; font-size: 0.7rem; background: #eef2f7; padding: 8px; border-radius: 12px;">
+                💡 <strong>Regras Cartão:</strong> 1 parcela = 2,06% | 2-6x = 2,33% | 7-12x = 2,63%
+            </div>
         </div>
     </div>
 </div>
 
 <script>
+    // ===== NOVA TABELA DE FINANCIAMENTO =====
+    const tabelaFinanciamento = {
+        1:  {30: {coef: 1.02540, ret: 2.48}, 60: {coef: 1.05145, ret: 4.89}, 90: {coef: 1.07815, ret: 7.25}},
+        2:  {30: {coef: 0.51913, ret: 3.68}, 60: {coef: 0.53232, ret: 6.07}, 90: {coef: 0.54584, ret: 8.40}},
+        3:  {30: {coef: 0.35041, ret: 4.87}, 60: {coef: 0.35931, ret: 7.23}, 90: {coef: 0.36844, ret: 9.53}},
+        4:  {30: {coef: 0.26607, ret: 6.04}, 60: {coef: 0.27283, ret: 8.37}, 90: {coef: 0.27976, ret: 10.64}},
+        5:  {30: {coef: 0.21549, ret: 7.19}, 60: {coef: 0.22097, ret: 9.49}, 90: {coef: 0.22658, ret: 11.73}},
+        6:  {30: {coef: 0.18179, ret: 8.32}, 60: {coef: 0.18641, ret: 10.59}, 90: {coef: 0.19115, ret: 12.81}},
+        7:  {30: {coef: 0.15714, ret: 9.09}, 60: {coef: 0.16097, ret: 11.25}, 90: {coef: 0.16490, ret: 13.37}},
+        8:  {30: {coef: 0.13911, ret: 10.14}, 60: {coef: 0.14251, ret: 12.28}, 90: {coef: 0.14598, ret: 14.37}},
+        9:  {30: {coef: 0.12510, ret: 11.18}, 60: {coef: 0.12815, ret: 13.30}, 90: {coef: 0.13128, ret: 15.36}},
+        10: {30: {coef: 0.11390, ret: 12.21}, 60: {coef: 0.11668, ret: 14.30}, 90: {coef: 0.11953, ret: 16.34}},
+        11: {30: {coef: 0.10475, ret: 13.22}, 60: {coef: 0.10731, ret: 15.28}, 90: {coef: 0.10993, ret: 17.30}},
+        12: {30: {coef: 0.09713, ret: 14.21}, 60: {coef: 0.09950, ret: 16.25}, 90: {coef: 0.10193, ret: 18.25}},
+        13: {30: {coef: 0.09188, ret: 16.28}, 60: {coef: 0.09430, ret: 18.43}, 90: {coef: 0.09679, ret: 20.53}},
+        14: {30: {coef: 0.08637, ret: 17.30}, 60: {coef: 0.08865, ret: 19.42}, 90: {coef: 0.09099, ret: 21.50}},
+        15: {30: {coef: 0.08160, ret: 18.30}, 60: {coef: 0.08375, ret: 20.40}, 90: {coef: 0.08597, ret: 22.45}},
+        16: {30: {coef: 0.07744, ret: 19.29}, 60: {coef: 0.07948, ret: 21.36}, 90: {coef: 0.08158, ret: 23.39}},
+        17: {30: {coef: 0.07377, ret: 20.26}, 60: {coef: 0.07572, ret: 22.31}, 90: {coef: 0.07771, ret: 24.31}},
+        18: {30: {coef: 0.07051, ret: 21.21}, 60: {coef: 0.07238, ret: 23.24}, 90: {coef: 0.07429, ret: 25.21}},
+        19: {30: {coef: 0.06761, ret: 22.15}, 60: {coef: 0.06939, ret: 24.15}, 90: {coef: 0.07122, ret: 26.11}},
+        20: {30: {coef: 0.06500, ret: 23.08}, 60: {coef: 0.06671, ret: 25.05}, 90: {coef: 0.06848, ret: 26.98}},
+        21: {30: {coef: 0.06264, ret: 23.98}, 60: {coef: 0.06430, ret: 25.94}, 90: {coef: 0.06599, ret: 27.84}},
+        22: {30: {coef: 0.06051, ret: 24.88}, 60: {coef: 0.06210, ret: 26.81}, 90: {coef: 0.06374, ret: 28.69}},
+        23: {30: {coef: 0.05856, ret: 25.75}, 60: {coef: 0.06011, ret: 27.66}, 90: {coef: 0.06169, ret: 29.52}},
+        24: {30: {coef: 0.05678, ret: 26.62}, 60: {coef: 0.05828, ret: 28.51}, 90: {coef: 0.05982, ret: 30.35}}
+    };
+
     // ===== FIREBASE CONFIG =====
     const firebaseConfig = {
         apiKey: "AIzaSyBQRnzD2zg2rKOa9XpCsXwFC-oDcnwUdnI",
@@ -750,23 +773,70 @@
         document.getElementById('visaoGeral').innerHTML = `<h4>📊 VISÃO GERAL DO NEGÓCIO</h4><div class="table-wrapper"><table class="resumo-table"><thead><tr><th>CLIENTE</th><th>VENDAS</th><th>LUCRO</th><th>MARGEM</th></tr></thead><tbody>${tabelaCli}<tr style="background:#e2e8f0; font-weight:bold;"><td style="text-align:left">TOTAL</td><td>${formatarMoeda(totalGeralVenda)}</td><td>${formatarMoeda(totalGeralLucro)}</td><td>${((totalGeralLucro/totalGeralVenda)*100).toFixed(2)}%</td></tr></tbody></table></div>`;
     }
 
-    // ===== SIMULADOR DE TAXAS =====
+    // ===== SIMULADOR DE TAXAS COM NOVA TABELA =====
     function calcularTaxaSimulador() {
         let valor = parseMoeda(document.getElementById('finValor').value);
         let forma = document.getElementById('finForma').value;
         let parcelas = parseInt(document.getElementById('finParcelas').value);
         let prazo = parseInt(document.getElementById('finPrazo').value);
         let taxa = 0;
-        if(forma==='cartao') { 
-            if(parcelas===1) taxa=0.0206; 
-            else if(parcelas<=6) taxa=0.0233; 
-            else taxa=0.0263; 
-        } else { 
-            let tabela={1:{30:0.0243,60:0.0480,90:0.0711},2:{30:0.0361,60:0.0596,90:0.0824},3:{30:0.0478,60:0.0709,90:0.0935},4:{30:0.0593,60:0.0821,90:0.1044},5:{30:0.0706,60:0.0931,90:0.1152},6:{30:0.0817,60:0.1040,90:0.1258},7:{30:0.0891,60:0.1104,90:0.1312},8:{30:0.0995,60:0.1205,90:0.1411},9:{30:0.1097,60:0.1305,90:0.1508},10:{30:0.1198,60:0.1403,90:0.1604}};
-            if(tabela[parcelas] && tabela[parcelas][prazo]) taxa = tabela[parcelas][prazo];
+        let retencao = 0;
+        let coeficiente = 0;
+        
+        if(forma === 'cartao') { 
+            if(parcelas === 1) taxa = 0.0206; 
+            else if(parcelas <= 6) taxa = 0.0233; 
+            else taxa = 0.0263;
+            let valorTaxa = valor * taxa;
+            let valorLiquido = valor - valorTaxa;
+            document.getElementById('resultadoTaxa').innerHTML = 
+                `<strong>📊 Resultado (Cartão):</strong><br>
+                Taxa aplicada: ${(taxa*100).toFixed(2)}%<br>
+                Valor da taxa: ${formatarMoeda(valorTaxa)}<br>
+                Valor líquido: ${formatarMoeda(valorLiquido)}`;
+            return;
         }
-        let valorTaxa = valor*taxa, valorLiquido = valor - valorTaxa;
-        document.getElementById('resultadoTaxa').innerHTML = `<strong>📊 Resultado:</strong><br>Taxa aplicada: ${(taxa*100).toFixed(2)}%<br>Valor da taxa: ${formatarMoeda(valorTaxa)}<br>Valor líquido: ${formatarMoeda(valorLiquido)}`;
+        
+        // Financiamento - usando nova tabela
+        if(tabelaFinanciamento[parcelas] && tabelaFinanciamento[parcelas][prazo]) {
+            let dados = tabelaFinanciamento[parcelas][prazo];
+            coeficiente = dados.coef;
+            retencao = dados.ret;
+            let valorLiquido = valor * coeficiente;
+            let valorTaxa = valor - valorLiquido;
+            document.getElementById('resultadoTaxa').innerHTML = 
+                `<strong>📊 Resultado (Financiamento):</strong><br>
+                Parcelas: ${parcelas}x | Prazo: ${prazo} dias<br>
+                Coeficiente: ${coeficiente.toFixed(5)}<br>
+                Retenção: ${retencao.toFixed(2)}%<br>
+                Valor líquido (recebido): ${formatarMoeda(valorLiquido)}<br>
+                Valor da taxa (retenção): ${formatarMoeda(valorTaxa)}`;
+        } else {
+            document.getElementById('resultadoTaxa').innerHTML = 
+                `<strong>⚠️ Tabela não encontrada</strong><br>
+                Parcelas: ${parcelas}x | Prazo: ${prazo} dias<br>
+                Verifique os valores informados.`;
+        }
+    }
+
+    // ===== TABELA DE FINANCIAMENTO VISUAL =====
+    function renderizarTabelaFinanciamento() {
+        const tbody = document.getElementById('tabelaFinanciamentoBody');
+        let html = '';
+        for(let i = 1; i <= 24; i++) {
+            if(tabelaFinanciamento[i]) {
+                html += `<tr>
+                    <td><strong>${i}</strong></td>
+                    <td>${tabelaFinanciamento[i][30].coef.toFixed(5)}</td>
+                    <td>${tabelaFinanciamento[i][30].ret.toFixed(2)}%</td>
+                    <td>${tabelaFinanciamento[i][60].coef.toFixed(5)}</td>
+                    <td>${tabelaFinanciamento[i][60].ret.toFixed(2)}%</td>
+                    <td>${tabelaFinanciamento[i][90].coef.toFixed(5)}</td>
+                    <td>${tabelaFinanciamento[i][90].ret.toFixed(2)}%</td>
+                </tr>`;
+            }
+        }
+        tbody.innerHTML = html;
     }
 
     // ===== PDF =====
@@ -830,6 +900,7 @@
     });
     
     // ===== INICIAR =====
+    renderizarTabelaFinanciamento();
     carregarDados();
     renderizarProdutos();
 </script>
