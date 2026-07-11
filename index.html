@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
+        /* ===== ESTILOS COMPLETOS (mesmo do código anterior) ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; }
         body { background: #eef2f7; padding: 12px; }
         .container { max-width: 1600px; margin: 0 auto; background: white; border-radius: 28px; box-shadow: 0 12px 30px rgba(0,0,0,0.08); padding: 16px 18px 28px; }
@@ -44,15 +45,15 @@
         .simulador-area button { background: #2c7cb6; color: white; border: none; padding: 6px 16px; border-radius: 30px; cursor: pointer; font-size: 0.8rem; }
         .btn-lancar, .btn-excel, .btn-pdf, .btn-relatorio { background: #1a6d3c; color: white; border: none; padding: 8px 18px; border-radius: 40px; font-weight: 700; cursor: pointer; font-size: 0.8rem; }
         .btn-pdf { background: #b22222; }
-        .filter-bar, .relatorio-filtros, .dashboard-filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 20px; background: #f8fafc; padding: 14px; border-radius: 24px; }
+        .filter-bar, .relatorio-filtros, .dashboard-filtros, .resumo-filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 20px; background: #f8fafc; padding: 14px; border-radius: 24px; }
         .filter-group { display: flex; flex-direction: column; gap: 5px; }
         .filter-group label { font-size: 0.7rem; font-weight: 600; color: #2c5f8a; }
         .filter-group input, .filter-group select { padding: 8px 10px; border-radius: 14px; border: 1.5px solid #dce5ec; font-size: 0.8rem; }
         .table-wrapper { overflow-x: auto; border-radius: 20px; border: 1px solid #e2edf7; margin-top: 12px; }
-        .data-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; min-width: 1500px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; min-width: 1600px; }
         .data-table th { background: #f1f6fd; color: #1e3a5f; padding: 10px 4px; border-bottom: 2px solid #cddeef; }
         .data-table td { padding: 8px 4px; border-bottom: 1px solid #e9edf2; text-align: center; }
-        .data-table td:first-child, .data-table td:nth-child(2), .data-table td:nth-child(18) { text-align: left; }
+        .data-table td:first-child, .data-table td:nth-child(2), .data-table td:nth-child(20) { text-align: left; }
         .delete-btn, .edit-btn { background: none; border: none; font-size: 1rem; cursor: pointer; margin: 0 2px; padding: 4px 6px; border-radius: 20px; }
         .edit-btn { color: #2c7cb6; }
         .delete-btn { color: #b91c1c; }
@@ -79,6 +80,13 @@
         .resumo-table { width: 100%; border-collapse: collapse; font-size: 0.65rem; min-width: 400px; }
         .resumo-table th, .resumo-table td { padding: 8px; border-bottom: 1px solid #ddd; text-align: right; }
         .resumo-table td:first-child { text-align: left; }
+        .resumo-container table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+        .resumo-container th { background: #1e3a5f; color: white; padding: 8px 6px; border: 1px solid #ccc; text-align: center; font-weight: 600; }
+        .resumo-container td { padding: 6px; border: 1px solid #ddd; text-align: right; }
+        .resumo-container td:first-child { text-align: center; }
+        .resumo-container td:nth-child(2) { text-align: left; }
+        .resumo-container td:nth-child(4) { text-align: left; }
+        .resumo-container td:nth-child(5) { text-align: left; }
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .modal-content { background: white; border-radius: 28px; padding: 20px; width: 90%; max-width: 650px; max-height: 85vh; overflow-y: auto; }
         .simulador-financeiro { background: #f9fafb; border-radius: 24px; padding: 20px; }
@@ -91,12 +99,11 @@
             .form-grid { grid-template-columns: 1fr; gap: 10px; }
             .top-header { flex-direction: column; align-items: flex-start; }
             .btn-lancar, .btn-excel, .btn-pdf { padding: 8px 14px; font-size: 0.75rem; width: 100%; text-align: center; }
-            .filter-bar { flex-direction: column; align-items: stretch; }
+            .filter-bar, .relatorio-filtros, .dashboard-filtros, .resumo-filtros { flex-direction: column; align-items: stretch; }
             .filter-group { width: 100%; }
             .dashboard-cards { grid-template-columns: repeat(2, 1fr); gap: 8px; }
             .total-footer { flex-direction: column; align-items: center; text-align: center; gap: 8px; }
             .produto-item { flex-direction: column; align-items: stretch; }
-            .tabela-taxas { font-size: 0.55rem; }
         }
         @media print {
             body { background: white; padding: 0; margin: 0; }
@@ -129,23 +136,28 @@
         <button class="tab-btn" data-tab="tab2">📊 RELATÓRIOS</button>
         <button class="tab-btn" data-tab="tab3">📈 DASHBOARD</button>
         <button class="tab-btn" data-tab="tab4">💳 TAR. FINANCEIRAS</button>
+        <button class="tab-btn" data-tab="tab5">📋 RESUMO DE VENDAS</button>
     </div>
 
     <!-- ABA 1 - LANÇAMENTOS -->
     <div id="tab1" class="tab-content active">
         <div class="form-card">
             <div class="form-grid">
-                <div class="input-field"><label>📅 DATA</label><input type="date" id="dataInput" value="2026-07-09"></div>
+                <div class="input-field"><label>📅 DATA</label><input type="date" id="dataInput" value="2026-07-11"></div>
                 <div class="input-field"><label>👤 CLIENTE</label><input type="text" id="clienteInput" list="clientesList" placeholder="Digite ou selecione"><datalist id="clientesList"></datalist></div>
                 <div class="input-field"><label>💰 VENDA (R$)</label><input type="text" id="vendaInput" class="moeda" value="1.000,00"></div>
                 <div class="input-field"><label>💸 DESP.FINANCEIRAS (R$)</label><input type="text" id="despFinanceirasInput" class="moeda" value="0,00"></div>
                 <div class="input-field"><label>📦 TIPO PEDIDO</label><select id="tipoPedidoInput"><option>OC</option><option>SR</option><option>OC/SR</option><option>Assistencia</option></select></div>
                 <div class="input-field"><label>🏷️ POSSUI RT?</label><select id="possuiRTInput"><option value="sim">Sim</option><option value="nao" selected>Não</option></select></div>
                 <div class="input-field"><label>📄 GERAR NOTA?</label><select id="gerarNotaInput"><option value="sim">Sim</option><option value="nao" selected>Não</option></select></div>
+                <div class="input-field"><label>👤 ARQUITETO</label><input type="text" id="arquitetoInput" placeholder="Nome (opcional)"></div>
+                <div class="input-field"><label>💳 FORMA PRINCIPAL</label><select id="formaPrincipalInput"><option value="Cartão">Cartão</option><option value="Boleto">Boleto</option><option value="Pix">Pix</option><option value="Espécie">Espécie</option><option value="Financiamento">Financiamento</option></select></div>
+                <div class="input-field"><label>💳 FORMA SECUNDÁRIA</label><select id="formaSecundariaInput"><option value="">Nenhuma</option><option value="Cartão">Cartão</option><option value="Boleto">Boleto</option><option value="Pix">Pix</option><option value="Espécie">Espécie</option><option value="Financiamento">Financiamento</option></select></div>
+                <div class="input-field"><label>📦 PARCELAS</label><select id="parcelasInput"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option></select></div>
             </div>
             
             <div class="produtos-lista">
-                <label style="font-weight: 600; font-size: 0.75rem; color: #2c5f8a;">📦 PRODUTOS (itens que compõem o custo)</label>
+                <label style="font-weight: 600; font-size: 0.75rem; color: #2c5f8a;">📦 PRODUTOS (itens que compõem o custo - opcional)</label>
                 <div id="produtosContainer"></div>
                 <button type="button" class="add-produto-btn" id="addProdutoBtn">➕ Adicionar Produto</button>
                 <div class="total-produto" id="totalProdutoDisplay">💰 TOTAL PRODUTO: R$ 0,00</div>
@@ -169,13 +181,12 @@
 
         <div class="table-wrapper">
             <table class="data-table">
-                <thead><tr><th>MÊS</th><th>CLIENTE</th><th>VENDA</th><th>IMP VENDA</th><th>PRODUTO</th><th>FRETE+EMB</th><th>CMV</th><th>LUCRO BRUTO</th><th>% LB</th><th>VARIÁVEIS</th><th>CUSTOS ADM</th><th>EBITDA</th><th>IMP LUCRO</th><th>DESP.FIN</th><th>LUCRO LÍQ</th><th>MARGEM</th><th>RT</th><th>NOTA</th><th>AÇÕES</th></tr></thead>
+                <thead><tr><th>MÊS</th><th>CLIENTE</th><th>VENDA</th><th>IMP VENDA</th><th>PRODUTO</th><th>FRETE+EMB</th><th>CMV</th><th>LUCRO BRUTO</th><th>% LB</th><th>VARIÁVEIS</th><th>CUSTOS ADM</th><th>EBITDA</th><th>IMP LUCRO</th><th>DESP.FIN</th><th>LUCRO LÍQ</th><th>MARGEM</th><th>RT</th><th>NOTA</th><th>ARQ</th><th>PCTO</th><th>PARC</th><th>AÇÕES</th></tr></thead>
                 <tbody id="tbodyLancamentos"></tbody>
             </table>
         </div>
         
         <div class="pagination" id="pagination"></div>
-        
         <div class="total-footer" id="totalFooter"></div>
     </div>
 
@@ -207,7 +218,7 @@
         </div>
     </div>
 
-    <!-- ABA 4 - TAR. FINANCEIRAS (com nova tabela) -->
+    <!-- ABA 4 - TAR. FINANCEIRAS -->
     <div id="tab4" class="tab-content">
         <div class="simulador-financeiro">
             <h3 style="margin-bottom: 20px; font-size: 1.1rem;">💳 Simulador de Taxas - Cartão / Financiamento</h3>
@@ -221,20 +232,45 @@
             <button class="btn-lancar" id="btnSimularTaxa" style="margin-top: 10px;">🔮 Calcular Taxa</button>
             <div class="resultado-simulador" id="resultadoTaxa"><strong>📊 Resultado:</strong><br>Coeficiente: --<br>Retenção: --<br>Valor líquido: --</div>
             <h4 style="margin: 24px 0 12px;">📋 Tabela de Referência - Financiamento</h4>
-            <div class="table-wrapper"><table class="tabela-taxas" id="tabelaFinanciamento">
-                <thead><tr><th rowspan="2">Parcelas</th><th colspan="2">30 dias</th><th colspan="2">60 dias</th><th colspan="2">90 dias</th></tr>
-                <tr><th>Coeficiente</th><th>Retenção</th><th>Coeficiente</th><th>Retenção</th><th>Coeficiente</th><th>Retenção</th></tr></thead>
-                <tbody id="tabelaFinanciamentoBody"></tbody>
-            </table></div>
-            <div style="margin-top: 16px; font-size: 0.7rem; background: #eef2f7; padding: 8px; border-radius: 12px;">
-                💡 <strong>Regras Cartão:</strong> 1 parcela = 2,06% | 2-6x = 2,33% | 7-12x = 2,63%
+            <div class="table-wrapper"><table class="tabela-taxas"><thead><tr><th rowspan="2">Parcelas</th><th colspan="2">30 dias</th><th colspan="2">60 dias</th><th colspan="2">90 dias</th></tr><tr><th>Coef</th><th>Ret</th><th>Coef</th><th>Ret</th><th>Coef</th><th>Ret</th></tr></thead>
+            <tbody id="tabelaFinanciamentoBody"></tbody></table></div>
+            <div style="margin-top: 16px; font-size: 0.7rem; background: #eef2f7; padding: 8px; border-radius: 12px;">💡 <strong>Regras Cartão:</strong> 1 parcela = 2,06% | 2-6x = 2,33% | 7-12x = 2,63%</div>
+        </div>
+    </div>
+
+    <!-- ABA 5 - RESUMO DE VENDAS (NOVA) -->
+    <div id="tab5" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 16px;">
+            <h3 style="color: #1e4663;">📋 Resumo de Vendas</h3>
+            <button class="btn-pdf" id="exportarResumoPDF">📄 Exportar PDF</button>
+        </div>
+        
+        <div class="resumo-filtros">
+            <div class="filter-group">
+                <label>📆 MÊS</label>
+                <select id="resumoMesSelect">
+                    <option value="">Selecione um mês</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>👤 ARQUITETO</label>
+                <select id="resumoArquitetoSelect">
+                    <option value="">Todos os arquitetos</option>
+                </select>
+            </div>
+            <button class="btn-relatorio" id="btnGerarResumo">🔎 GERAR RESUMO</button>
+        </div>
+        
+        <div id="resumoContainer" class="resumo-container">
+            <div style="text-align: center; padding: 40px; color: #999;">
+                Selecione um mês e clique em "GERAR RESUMO"
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // ===== NOVA TABELA DE FINANCIAMENTO =====
+    // ===== TABELA DE FINANCIAMENTO =====
     const tabelaFinanciamento = {
         1:  {30: {coef: 1.02540, ret: 2.48}, 60: {coef: 1.05145, ret: 4.89}, 90: {coef: 1.07815, ret: 7.25}},
         2:  {30: {coef: 0.51913, ret: 3.68}, 60: {coef: 0.53232, ret: 6.07}, 90: {coef: 0.54584, ret: 8.40}},
@@ -286,10 +322,40 @@
     function formatMesAno(dataStr) { let d = new Date(dataStr); return `${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getFullYear()}`; }
     function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
     
-    function calcularImpostos(venda, regime, aliquotaSimples, tipoPedido, gerarNota) {
-        if(gerarNota === 'nao') {
-            return { impostoVenda: 0, impostoLucro: 0 };
+    // ===== CÁLCULO DE TAXAS PARA VALOR LÍQUIDO =====
+    function getTaxaCartao(parcelas) {
+        if(parcelas === 1) return 0.0206;
+        if(parcelas <= 6) return 0.0233;
+        return 0.0263;
+    }
+    
+    function getCoeficienteFinanciamento(parcelas, prazo) {
+        if(tabelaFinanciamento[parcelas] && tabelaFinanciamento[parcelas][prazo]) {
+            return tabelaFinanciamento[parcelas][prazo].coef;
         }
+        return 1;
+    }
+    
+    function calcularValorLiquido(venda, formaPrincipal, formaSecundaria, parcelas) {
+        if(formaPrincipal === 'Pix' || formaPrincipal === 'Espécie') {
+            return venda;
+        }
+        if(formaPrincipal === 'Cartão') {
+            let taxa = getTaxaCartao(parcelas);
+            return venda * (1 - taxa);
+        }
+        if(formaPrincipal === 'Financiamento') {
+            let coef = getCoeficienteFinanciamento(parcelas, 30);
+            return venda * coef;
+        }
+        if(formaPrincipal === 'Boleto') {
+            return venda;
+        }
+        return venda;
+    }
+    
+    function calcularImpostos(venda, regime, aliquotaSimples, tipoPedido, gerarNota) {
+        if(gerarNota === 'nao') return { impostoVenda: 0, impostoLucro: 0 };
         if(regime === "Simples") {
             let impV = venda * (aliquotaSimples / 100);
             return { impostoVenda: impV, impostoLucro: 0 };
@@ -300,10 +366,11 @@
         return { impostoVenda: venda * aliquotaVenda, impostoLucro: venda * 0.0228 };
     }
     
-    function calcularCampos(venda, produtoTotal, despFin, regime, aliquotaSimples, possuiRT, tipoPedido, gerarNota) {
+    function recalcularCampos(venda, produtoTotal, despFin, regime, aliquotaSimples, possuiRT, tipoPedido, gerarNota) {
         const { impostoVenda, impostoLucro } = calcularImpostos(venda, regime, aliquotaSimples, tipoPedido, gerarNota);
-        const freteEmb = produtoTotal * 0.1675;
-        const cmv = produtoTotal + freteEmb;
+        const custoInformado = produtoTotal > 0;
+        const freteEmb = custoInformado ? produtoTotal * 0.1675 : 0;
+        const cmv = custoInformado ? produtoTotal + freteEmb : 0;
         const lucroBruto = venda - impostoVenda - cmv;
         const percLB = venda ? lucroBruto / venda : 0;
         let variaveis = (venda - despFin) * 0.2262;
@@ -312,7 +379,11 @@
         const ebitda = lucroBruto - variaveis - custosAdm;
         const lucroLiquido = ebitda - impostoLucro - despFin;
         const margem = venda ? lucroLiquido / venda : 0;
-        return { impostoVenda, freteEmb, cmv, lucroBruto, percLB, variaveis, custosAdm, ebitda, impostoLucro, lucroLiquido, margem };
+        return { 
+            impostoVenda, freteEmb, cmv, lucroBruto, percLB, variaveis, 
+            custosAdm, ebitda, impostoLucro, lucroLiquido, margem,
+            custoInformado
+        };
     }
 
     // ===== MÚLTIPLOS PRODUTOS =====
@@ -394,6 +465,19 @@
     function getAliquota() { return parseFloat(document.getElementById('simplesAliquota').value) || 6; }
     function showToast(msg) { let d=document.createElement('div'); d.className='toast-msg'; d.innerText=msg; document.body.appendChild(d); setTimeout(()=>d.remove(),2000); }
     
+    function getFormaPagamentoDisplay(principal, secundaria) {
+        if(secundaria && secundaria !== '') {
+            return principal + ' + ' + secundaria;
+        }
+        return principal;
+    }
+    
+    function getEntradaInicial(dataRef) {
+        let d = new Date(dataRef);
+        d.setDate(d.getDate() + 30);
+        return d.toISOString().slice(0,10);
+    }
+    
     async function carregarDados() { 
         try { 
             const snap = await db.collection('lancamentos').orderBy('dataRef','desc').get(); 
@@ -405,6 +489,7 @@
             aplicarFiltroEPaginacao();
             atualizarDashboardCompleto(); 
             atualizarListaClientes(); 
+            atualizarResumoDropdowns();
         } catch(e){ showToast("⚠️ Erro Firebase"); } 
     }
     
@@ -422,6 +507,7 @@
             aplicarFiltroEPaginacao();
             atualizarDashboardCompleto(); 
             atualizarListaClientes(); 
+            atualizarResumoDropdowns();
             showToast("🗑️ Removido"); 
         } catch(e){ showToast("⚠️ Erro"); } 
     }
@@ -437,10 +523,12 @@
         let fMes = document.getElementById('filtroMesSelect').value;
         filtroClienteAtual = fCliente;
         filtroMesAtual = fMes;
-        filteredLancamentos = lancamentos.filter(l=> 
-            (!fCliente || l.cliente.toLowerCase().includes(fCliente)) && 
-            (!fMes || l.mes===fMes)
-        );
+        
+        filteredLancamentos = lancamentos.filter(l => {
+            let matchCliente = !fCliente || l.cliente.toLowerCase().includes(fCliente);
+            let matchMes = !fMes || l.mes === fMes;
+            return matchCliente && matchMes;
+        });
         currentPage = 1;
         renderizarTabelaPaginada();
         atualizarTotaisFiltrados(filteredLancamentos);
@@ -454,16 +542,34 @@
         
         const tbody = document.getElementById('tbodyLancamentos');
         if(pageData.length === 0){ 
-            tbody.innerHTML='<tr><td colspan="19">Nenhum lançamento encontrado.</td></tr>'; 
+            tbody.innerHTML='<tr><td colspan="22">Nenhum lançamento encontrado.</td></tr>'; 
         } else {
             tbody.innerHTML = '';
             pageData.forEach(l=>{
                 let row = tbody.insertRow();
+                
+                // ===== CORREÇÃO: EXIBE O VALOR DO PRODUTO CORRETAMENTE =====
+                let produtoDisplay = 'Não informado';
+                // Se o campo produto existe e é maior que 0, mostra o valor
+                if (l.produto && l.produto > 0) {
+                    produtoDisplay = formatarMoeda(l.produto);
+                } 
+                // Se custoInformado for verdadeiro e produto > 0
+                else if (l.custoInformado === true && l.produto > 0) {
+                    produtoDisplay = formatarMoeda(l.produto);
+                }
+                // Se custoInformado for falso mas produto > 0 (lançamentos antigos)
+                else if (l.custoInformado === false && l.produto > 0) {
+                    produtoDisplay = formatarMoeda(l.produto);
+                }
+                // Se não tiver produto, mantém "Não informado"
+                
+                let formaDisplay = getFormaPagamentoDisplay(l.formaPrincipal || 'Cartão', l.formaSecundaria || '');
                 row.insertCell(0).innerText = l.mes || '';
                 row.insertCell(1).innerText = l.cliente || '';
                 row.insertCell(2).innerText = formatarMoeda(l.venda || 0);
                 row.insertCell(3).innerText = formatarMoeda(l.impostoVenda || 0);
-                row.insertCell(4).innerText = formatarMoeda(l.produto || 0);
+                row.insertCell(4).innerText = produtoDisplay;
                 row.insertCell(5).innerText = formatarMoeda(l.freteEmb || 0);
                 row.insertCell(6).innerText = formatarMoeda(l.cmv || 0);
                 row.insertCell(7).innerText = formatarMoeda(l.lucroBruto || 0);
@@ -477,7 +583,10 @@
                 row.insertCell(15).innerText = `${((l.margem || 0)*100).toFixed(2)}%`;
                 row.insertCell(16).innerText = l.possuiRT === 'sim' ? 'Sim' : 'Não';
                 row.insertCell(17).innerText = l.gerarNota === 'sim' ? 'Sim' : 'Não';
-                let cellAcao = row.insertCell(18);
+                row.insertCell(18).innerText = l.arquiteto || '-';
+                row.insertCell(19).innerText = formaDisplay;
+                row.insertCell(20).innerText = l.parcelas || '1';
+                let cellAcao = row.insertCell(21);
                 let btnEdit = document.createElement('button'); btnEdit.innerText='✏️'; btnEdit.className='edit-btn'; 
                 btnEdit.onclick = () => editarLancamentoCompleto(l.id);
                 let btnDel = document.createElement('button'); btnDel.innerText='🗑️'; btnDel.className='delete-btn'; 
@@ -517,11 +626,14 @@
             let [mA,aA]=a.split('/'),[mB,aB]=b.split('/'); 
             return aA!==aB ? parseInt(aB)-parseInt(aA) : parseInt(mB)-parseInt(mA); 
         });
-        ['filtroMesSelect','relMesSelect','dashMesInicio','dashMesFim'].forEach(id=>{ 
+        ['filtroMesSelect','relMesSelect','dashMesInicio','dashMesFim','resumoMesSelect'].forEach(id=>{ 
             let el=document.getElementById(id); 
-            if(el) el.innerHTML='<option value="">Todos</option>'+meses.map(m=>`<option value="${m}">${m}</option>`).join(''); 
+            if(el) el.innerHTML = id === 'resumoMesSelect' ? 
+                '<option value="">Selecione um mês</option>'+meses.map(m=>`<option value="${m}">${m}</option>`).join('') :
+                '<option value="">Todos</option>'+meses.map(m=>`<option value="${m}">${m}</option>`).join(''); 
         });
         atualizarClientesRel();
+        atualizarResumoDropdowns();
     }
     
     function atualizarClientesRel() {
@@ -531,6 +643,12 @@
         select.innerHTML = '<option value="">Todos os clientes</option>'+[...new Set(lista)].sort().map(c=>`<option value="${c}">${c}</option>`).join('');
     }
     
+    function atualizarResumoDropdowns() {
+        let arquitetos = [...new Set(lancamentos.map(l=>l.arquiteto).filter(a=>a && a.trim()!==''))].sort();
+        let select = document.getElementById('resumoArquitetoSelect');
+        select.innerHTML = '<option value="">Todos os arquitetos</option>'+arquitetos.map(a=>`<option value="${a}">${a}</option>`).join('');
+    }
+    
     async function adicionarLancamento() {
         let data = document.getElementById('dataInput').value;
         let cliente = document.getElementById('clienteInput').value.trim();
@@ -538,25 +656,35 @@
         let produtoTotal = getProdutoTotal();
         let despFin = parseMoeda(document.getElementById('despFinanceirasInput').value);
         let tipo = document.getElementById('tipoPedidoInput').value;
-        let possuiRT = document.getElementById('possuiRTInput').value;
+        let arquiteto = document.getElementById('arquitetoInput').value.trim();
+        let formaPrincipal = document.getElementById('formaPrincipalInput').value;
+        let formaSecundaria = document.getElementById('formaSecundariaInput').value;
+        let parcelas = parseInt(document.getElementById('parcelasInput').value);
         let gerarNota = document.getElementById('gerarNotaInput').value;
         
+        let possuiRT = document.getElementById('possuiRTInput').value;
+        if(arquiteto !== '') {
+            possuiRT = 'sim';
+        }
+        
         if(!data || !cliente || isNaN(venda) || venda<=0) { alert("Preencha todos os campos!"); return; }
-        if(produtosItens.length === 0) { alert("Adicione pelo menos um produto!"); return; }
         
         let aliquota = getAliquota();
         let regime = getRegimeByData(data);
-        let calc = calcularCampos(venda, produtoTotal, despFin, regime, aliquota, possuiRT, tipo, gerarNota);
+        let calc = recalcularCampos(venda, produtoTotal, despFin, regime, aliquota, possuiRT, tipo, gerarNota);
         let mes = formatMesAno(data);
+        let entradaInicial = getEntradaInicial(data);
         let produtosJSON = JSON.stringify(produtosItens);
         let novo = { 
             dataRef: data, mes, cliente, venda, produto: produtoTotal, produtosItens: produtosJSON, 
-            despFin, tipo, possuiRT, gerarNota, regime, 
+            despFin, tipo, possuiRT, gerarNota, arquiteto, formaPrincipal, formaSecundaria, 
+            parcelas, entradaInicial, regime, 
             ...calc 
         };
         await salvarLancamento(novo);
         await carregarDados();
         document.getElementById('clienteInput').value = '';
+        document.getElementById('arquitetoInput').value = '';
         document.getElementById('vendaInput').value = '1.000,00';
         document.getElementById('despFinanceirasInput').value = '0,00';
         produtosItens = [];
@@ -582,6 +710,10 @@
                 <div><label>TIPO</label><select id="editTipo"><option>OC</option><option>SR</option><option>OC/SR</option><option>Assistencia</option></select></div>
                 <div><label>POSSUI RT?</label><select id="editRT"><option value="sim">Sim</option><option value="nao">Não</option></select></div>
                 <div><label>📄 GERAR NOTA?</label><select id="editNota"><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+                <div><label>👤 ARQUITETO</label><input type="text" id="editArquiteto" value="${escapeHtml(l.arquiteto || '')}"></div>
+                <div><label>💳 FORMA PRINCIPAL</label><select id="editFormaPrincipal"><option value="Cartão">Cartão</option><option value="Boleto">Boleto</option><option value="Pix">Pix</option><option value="Espécie">Espécie</option><option value="Financiamento">Financiamento</option></select></div>
+                <div><label>💳 FORMA SECUNDÁRIA</label><select id="editFormaSecundaria"><option value="">Nenhuma</option><option value="Cartão">Cartão</option><option value="Boleto">Boleto</option><option value="Pix">Pix</option><option value="Espécie">Espécie</option><option value="Financiamento">Financiamento</option></select></div>
+                <div><label>📦 PARCELAS</label><select id="editParcelas"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option></select></div>
                 <div><label>📦 PRODUTOS</label><div id="editProdutosContainer"></div>
                 <button type="button" id="editAddProdutoBtn" class="add-produto-btn">➕ Adicionar Produto</button>
                 <div id="editTotalProdutoDisplay" style="margin-top:8px; font-weight:bold;"></div></div>
@@ -592,6 +724,9 @@
         document.getElementById('editTipo').value = l.tipo || 'OC';
         document.getElementById('editRT').value = l.possuiRT || 'nao';
         document.getElementById('editNota').value = l.gerarNota || 'nao';
+        document.getElementById('editFormaPrincipal').value = l.formaPrincipal || 'Cartão';
+        document.getElementById('editFormaSecundaria').value = l.formaSecundaria || '';
+        document.getElementById('editParcelas').value = l.parcelas || '1';
         
         let editProdutos = [...produtosSalvos];
         
@@ -658,15 +793,25 @@
             let newTipo = document.getElementById('editTipo').value;
             let newRT = document.getElementById('editRT').value;
             let newNota = document.getElementById('editNota').value;
+            let newArquiteto = document.getElementById('editArquiteto').value.trim();
+            let newFormaPrincipal = document.getElementById('editFormaPrincipal').value;
+            let newFormaSecundaria = document.getElementById('editFormaSecundaria').value;
+            let newParcelas = parseInt(document.getElementById('editParcelas').value);
             let produtoTotalEdit = editProdutos.reduce((s,i)=>s+i.valor,0);
+            
+            if(newArquiteto !== '') newRT = 'sim';
+            
             if(!newData || !newCliente || isNaN(newVenda) || editProdutos.length===0) { alert("Preencha corretamente!"); return; }
             let aliq = getAliquota(); 
             let regime = getRegimeByData(newData);
-            let calc = calcularCampos(newVenda, produtoTotalEdit, newDesp, regime, aliq, newRT, newTipo, newNota);
+            let calc = recalcularCampos(newVenda, produtoTotalEdit, newDesp, regime, aliq, newRT, newTipo, newNota);
+            let entradaInicial = getEntradaInicial(newData);
             let produtosJSON = JSON.stringify(editProdutos);
             Object.assign(l, { dataRef: newData, mes: formatMesAno(newData), cliente: newCliente, venda: newVenda, 
                               produto: produtoTotalEdit, produtosItens: produtosJSON, despFin: newDesp, 
-                              tipo: newTipo, possuiRT: newRT, gerarNota: newNota, regime, ...calc });
+                              tipo: newTipo, possuiRT: newRT, gerarNota: newNota, arquiteto: newArquiteto,
+                              formaPrincipal: newFormaPrincipal, formaSecundaria: newFormaSecundaria,
+                              parcelas: newParcelas, entradaInicial: entradaInicial, regime, ...calc });
             await salvarLancamento(l);
             await carregarDados();
             modal.remove(); showToast("✏️ Editado!");
@@ -773,20 +918,15 @@
         document.getElementById('visaoGeral').innerHTML = `<h4>📊 VISÃO GERAL DO NEGÓCIO</h4><div class="table-wrapper"><table class="resumo-table"><thead><tr><th>CLIENTE</th><th>VENDAS</th><th>LUCRO</th><th>MARGEM</th></tr></thead><tbody>${tabelaCli}<tr style="background:#e2e8f0; font-weight:bold;"><td style="text-align:left">TOTAL</td><td>${formatarMoeda(totalGeralVenda)}</td><td>${formatarMoeda(totalGeralLucro)}</td><td>${((totalGeralLucro/totalGeralVenda)*100).toFixed(2)}%</td></tr></tbody></table></div>`;
     }
 
-    // ===== SIMULADOR DE TAXAS COM NOVA TABELA =====
+    // ===== SIMULADOR DE TAXAS =====
     function calcularTaxaSimulador() {
         let valor = parseMoeda(document.getElementById('finValor').value);
         let forma = document.getElementById('finForma').value;
         let parcelas = parseInt(document.getElementById('finParcelas').value);
         let prazo = parseInt(document.getElementById('finPrazo').value);
-        let taxa = 0;
-        let retencao = 0;
-        let coeficiente = 0;
         
         if(forma === 'cartao') { 
-            if(parcelas === 1) taxa = 0.0206; 
-            else if(parcelas <= 6) taxa = 0.0233; 
-            else taxa = 0.0263;
+            let taxa = parcelas === 1 ? 0.0206 : (parcelas <= 6 ? 0.0233 : 0.0263);
             let valorTaxa = valor * taxa;
             let valorLiquido = valor - valorTaxa;
             document.getElementById('resultadoTaxa').innerHTML = 
@@ -797,25 +937,21 @@
             return;
         }
         
-        // Financiamento - usando nova tabela
         if(tabelaFinanciamento[parcelas] && tabelaFinanciamento[parcelas][prazo]) {
             let dados = tabelaFinanciamento[parcelas][prazo];
-            coeficiente = dados.coef;
-            retencao = dados.ret;
-            let valorLiquido = valor * coeficiente;
+            let valorLiquido = valor * dados.coef;
             let valorTaxa = valor - valorLiquido;
             document.getElementById('resultadoTaxa').innerHTML = 
                 `<strong>📊 Resultado (Financiamento):</strong><br>
                 Parcelas: ${parcelas}x | Prazo: ${prazo} dias<br>
-                Coeficiente: ${coeficiente.toFixed(5)}<br>
-                Retenção: ${retencao.toFixed(2)}%<br>
+                Coeficiente: ${dados.coef.toFixed(5)}<br>
+                Retenção: ${dados.ret.toFixed(2)}%<br>
                 Valor líquido (recebido): ${formatarMoeda(valorLiquido)}<br>
                 Valor da taxa (retenção): ${formatarMoeda(valorTaxa)}`;
         } else {
             document.getElementById('resultadoTaxa').innerHTML = 
                 `<strong>⚠️ Tabela não encontrada</strong><br>
-                Parcelas: ${parcelas}x | Prazo: ${prazo} dias<br>
-                Verifique os valores informados.`;
+                Parcelas: ${parcelas}x | Prazo: ${prazo} dias`;
         }
     }
 
@@ -837,6 +973,151 @@
             }
         }
         tbody.innerHTML = html;
+    }
+
+    // ===== RESUMO DE VENDAS =====
+    function gerarResumoVendas() {
+        let mes = document.getElementById('resumoMesSelect').value;
+        let arquiteto = document.getElementById('resumoArquitetoSelect').value;
+        
+        let filtered = lancamentos.filter(l => {
+            let matchMes = (!mes || l.mes === mes);
+            let matchArquiteto = (!arquiteto || l.arquiteto === arquiteto);
+            return matchMes && matchArquiteto;
+        });
+        
+        const container = document.getElementById('resumoContainer');
+        if(!filtered.length) {
+            container.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">Nenhum resultado encontrado</div>';
+            return;
+        }
+        
+        let html = `<div style="margin-bottom:20px;">
+            <h4 style="color:#1e3a5f; margin-bottom:10px;">📊 RESUMO DE VENDAS${mes ? ' - ' + mes : ''}${arquiteto ? ' - Arquiteto: ' + arquiteto : ''}</h4>
+        </div>`;
+        
+        html += `<table>
+            <thead>
+                <tr>
+                    <th>MÊS</th>
+                    <th>CLIENTE</th>
+                    <th>VENDA LÍQ</th>
+                    <th>ARQUITETO</th>
+                    <th>FORMA PAGTO</th>
+                    <th>ENTRADA</th>
+                    <th>PARC</th>
+                    <th>IMP+CMV</th>
+                    <th>C. VAR</th>
+                    <th>ADM/FIN</th>
+                    <th>LUCRO LÍQ</th>
+                    <th>MARGEM %</th>
+                </tr>
+            </thead>
+            <tbody>`;
+        
+        let somaVenda = 0, somaImpCmv = 0, somaVar = 0, somaAdmFin = 0, somaLucro = 0, somaMargem = 0;
+        let count = 0;
+        
+        filtered.forEach(l => {
+            let valorLiquido = calcularValorLiquido(l.venda, l.formaPrincipal || 'Cartão', l.formaSecundaria || '', l.parcelas || 1);
+            let impostoTotal = (l.impostoVenda || 0) + (l.impostoLucro || 0);
+            let impCmv = impostoTotal + (l.cmv || 0);
+            let admFin = (l.custosAdm || 0) + (l.despFin || 0);
+            let lucroLiq = valorLiquido - impCmv - (l.variaveis || 0) - admFin;
+            let margem = (lucroLiq / valorLiquido) * 100;
+            let formaDisplay = getFormaPagamentoDisplay(l.formaPrincipal || 'Cartão', l.formaSecundaria || '');
+            let entradaDisplay = l.entradaInicial ? new Date(l.entradaInicial).toLocaleDateString('pt-BR') : '-';
+            
+            somaVenda += valorLiquido;
+            somaImpCmv += impCmv;
+            somaVar += l.variaveis || 0;
+            somaAdmFin += admFin;
+            somaLucro += lucroLiq;
+            somaMargem += margem;
+            count++;
+            
+            html += `<tr>
+                <td>${l.mes}</td>
+                <td>${l.cliente}</td>
+                <td>${formatarMoeda(valorLiquido)}</td>
+                <td>${l.arquiteto || '-'}</td>
+                <td>${formaDisplay}</td>
+                <td>${entradaDisplay}</td>
+                <td>${l.parcelas || '1'}</td>
+                <td>${formatarMoeda(impCmv)}</td>
+                <td>${formatarMoeda(l.variaveis || 0)}</td>
+                <td>${formatarMoeda(admFin)}</td>
+                <td style="font-weight:600;">${formatarMoeda(lucroLiq)}</td>
+                <td style="${margem < 10 ? 'color:#b00020; font-weight:700;' : ''}">${margem.toFixed(2)}%</td>
+            </tr>`;
+        });
+        
+        let mediaMargem = count ? somaMargem / count : 0;
+        
+        html += `<tr style="background:#e2e8f0; font-weight:700;">
+            <td colspan="2" style="text-align:center;">TOTAIS/MÉDIA</td>
+            <td>${formatarMoeda(somaVenda)}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>${formatarMoeda(somaImpCmv)}</td>
+            <td>${formatarMoeda(somaVar)}</td>
+            <td>${formatarMoeda(somaAdmFin)}</td>
+            <td style="font-weight:800;">${formatarMoeda(somaLucro)}</td>
+            <td>${mediaMargem.toFixed(2)}%</td>
+        </tr>`;
+        
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+    }
+
+    // ===== EXPORTAR PDF DO RESUMO =====
+    function exportarResumoPDF() {
+        const element = document.getElementById('resumoContainer');
+        if (!element || element.innerHTML.includes('Nenhum resultado')) {
+            alert('Gere o resumo primeiro antes de exportar o PDF.');
+            return;
+        }
+        
+        const clone = element.cloneNode(true);
+        const container = document.createElement('div');
+        container.style.padding = '20px';
+        container.style.background = 'white';
+        container.style.width = '100%';
+        container.appendChild(clone);
+        
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.alignItems = 'center';
+        header.style.justifyContent = 'space-between';
+        header.style.marginBottom = '20px';
+        header.style.borderBottom = '2px solid #1e3a5f';
+        header.style.paddingBottom = '10px';
+        header.innerHTML = `
+            <div style="display:flex; align-items:center; gap:15px;">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSAhRVB0QzBGv8-9sED9OxIx8yMJj9UyzezkQ&s" style="width:40px; height:40px; border-radius:8px;">
+                <h2 style="color:#1e3a5f; margin:0;">SISTEMA BRETON - RESUMO DE VENDAS</h2>
+            </div>
+            <div style="text-align:right; font-size:0.8rem; color:#666;">
+                Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}
+            </div>
+        `;
+        container.prepend(header);
+        
+        document.body.appendChild(container);
+        
+        const opt = {
+            margin: [0.3, 0.3, 0.3, 0.3],
+            filename: `resumo_vendas_${new Date().toISOString().slice(0,10)}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, letterRendering: true, useCORS: true },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+        };
+        
+        html2pdf().set(opt).from(container).save().then(() => {
+            document.body.removeChild(container);
+        });
     }
 
     // ===== PDF =====
@@ -872,19 +1153,27 @@
         let rt=document.getElementById('possuiRTInput').value; 
         let tipo=document.getElementById('tipoPedidoInput').value; 
         let nota=document.getElementById('gerarNotaInput').value;
-        let calc=calcularCampos(venda,produtoTotal,desp,regime,getAliquota(),rt,tipo,nota); 
+        let calc=recalcularCampos(venda,produtoTotal,desp,regime,getAliquota(),rt,tipo,nota); 
         document.getElementById('simuladorResultado').innerHTML=`💰 Lucro: ${formatarMoeda(calc.lucroLiquido)} (${(calc.margem*100).toFixed(2)}%)`; 
     });
     document.getElementById('toggleConfig').addEventListener('click', () => { document.getElementById('configPanel').style.display = document.getElementById('configPanel').style.display==='none'?'block':'none'; });
     document.getElementById('finForma').addEventListener('change', (e) => { document.getElementById('campoPrazo').style.display = e.target.value==='financiamento'?'block':'none'; });
     document.getElementById('addProdutoBtn').addEventListener('click', adicionarProdutoVazio);
     document.getElementById('relMesSelect').addEventListener('change', atualizarClientesRel);
+    document.getElementById('btnGerarResumo').addEventListener('click', () => { gerarResumoVendas(); });
+    document.getElementById('exportarResumoPDF').addEventListener('click', exportarResumoPDF);
     
     document.querySelectorAll('.moeda').forEach(el => { 
         el.addEventListener('blur', function() { 
             let val = parseMoeda(this.value); 
             this.value = formatarMoeda(val); 
         }); 
+    });
+    
+    document.getElementById('arquitetoInput').addEventListener('input', function() {
+        if(this.value.trim() !== '') {
+            document.getElementById('possuiRTInput').value = 'sim';
+        }
     });
     
     // ===== ABAS =====
