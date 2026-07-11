@@ -82,10 +82,20 @@
         .resumo-container table { width: 100%; border-collapse: collapse; font-size: 0.6rem; table-layout: fixed; }
         .resumo-container th { background: #1e3a5f; color: white; padding: 6px 4px; border: 1px solid #ccc; text-align: center; font-weight: 600; white-space: nowrap; font-size: 0.6rem; }
         .resumo-container td { padding: 4px 6px; border: 1px solid #ddd; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.6rem; }
-        .resumo-container td:first-child { text-align: center; }
-        .resumo-container td:nth-child(2) { text-align: left; }
-        .resumo-container td:nth-child(4) { text-align: left; }
-        .resumo-container td:nth-child(5) { text-align: left; }
+        .resumo-container td:first-child { text-align: center; width: 8%; }
+        .resumo-container td:nth-child(2) { text-align: left; width: 14%; }
+        .resumo-container td:nth-child(3) { text-align: right; width: 8%; }
+        .resumo-container td:nth-child(4) { text-align: left; width: 12%; }
+        .resumo-container td:nth-child(5) { text-align: left; width: 10%; }
+        .resumo-container td:nth-child(6) { text-align: center; width: 5%; }
+        .resumo-container td:nth-child(7) { text-align: right; width: 8%; }
+        .resumo-container td:nth-child(8) { text-align: center; width: 8%; }
+        .resumo-container td:nth-child(9) { text-align: right; width: 8%; }
+        .resumo-container td:nth-child(10) { text-align: right; width: 6%; }
+        .resumo-container td:nth-child(11) { text-align: right; width: 6%; }
+        .resumo-container td:nth-child(12) { text-align: right; width: 8%; }
+        .resumo-container td:nth-child(13) { text-align: right; width: 6%; }
+        .produto-nao-informado { font-size: 0.5rem; color: #999; font-style: italic; }
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .modal-content { background: white; border-radius: 28px; padding: 20px; width: 90%; max-width: 650px; max-height: 85vh; overflow-y: auto; }
         .simulador-financeiro { background: #f9fafb; border-radius: 24px; padding: 20px; }
@@ -319,6 +329,20 @@
         return parseFloat(cleaned) || 0;
     }
     
+    function encurtarNome(nomeCompleto) {
+        if (!nomeCompleto || nomeCompleto.trim() === '') return '-';
+        let partes = nomeCompleto.trim().split(' ');
+        if (partes.length <= 2) return nomeCompleto.trim();
+        return partes[0] + ' ' + partes[partes.length - 1];
+    }
+    
+    function isPagamentoAVista(formaPrincipal, formaSecundaria, parcelasPrincipal, parcelasSecundaria) {
+        let principalAVista = (formaPrincipal === 'Pix' || formaPrincipal === 'Espécie');
+        let temParcelas = (parcelasPrincipal > 1 || parcelasSecundaria > 0);
+        if (principalAVista && !temParcelas) return true;
+        return false;
+    }
+    
     function getRegimeByData(dataStr) { return new Date(dataStr).getFullYear() < 2026 ? "Presumido" : "Simples"; }
     function formatMesAno(dataStr) { let d = new Date(dataStr); return `${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getFullYear()}`; }
     function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
@@ -544,9 +568,10 @@
                 
                 let formaDisplay = getFormaPagamentoDisplay(l.formaPrincipal || 'Cartão', l.formaSecundaria || '');
                 let parcelasDisplay = getParcelasDisplay(l.parcelasPrincipal || 1, l.parcelasSecundaria || 0);
+                let clienteAbreviado = encurtarNome(l.cliente);
                 
                 row.insertCell(0).innerText = l.mes || '';
-                row.insertCell(1).innerText = l.cliente || '';
+                row.insertCell(1).innerText = clienteAbreviado;
                 row.insertCell(2).innerText = formatarMoeda(l.venda || 0);
                 row.insertCell(3).innerText = formatarMoeda(l.impostoVenda || 0);
                 row.insertCell(4).innerText = produtoDisplay;
@@ -563,7 +588,7 @@
                 row.insertCell(15).innerText = `${((l.margem || 0)*100).toFixed(2)}%`;
                 row.insertCell(16).innerText = l.possuiRT === 'sim' ? 'Sim' : 'Não';
                 row.insertCell(17).innerText = l.gerarNota === 'sim' ? 'Sim' : 'Não';
-                row.insertCell(18).innerText = l.arquiteto || '-';
+                row.insertCell(18).innerText = encurtarNome(l.arquiteto) || '-';
                 row.insertCell(19).innerText = formaDisplay;
                 row.insertCell(20).innerText = parcelasDisplay;
                 let cellAcao = row.insertCell(21);
@@ -969,7 +994,6 @@
         let mes = document.getElementById('resumoMesSelect').value;
         let arquiteto = document.getElementById('resumoArquitetoSelect').value;
         
-        // Salvar filtros para persistência
         filtroResumoMes = mes;
         filtroResumoArquiteto = arquiteto;
         
@@ -979,7 +1003,6 @@
             return matchMes && matchArquiteto;
         });
         
-        // Ordenar da mais antiga para a mais recente
         filtered.sort((a, b) => {
             if (a.dataRef < b.dataRef) return -1;
             if (a.dataRef > b.dataRef) return 1;
@@ -1017,6 +1040,7 @@
             <tbody>`;
         
         let somaVenda = 0, somaImpCmv = 0, somaVar = 0, somaAdmFin = 0, somaLucro = 0, somaMargem = 0;
+        let somaPrimeiraParcela = 0;
         let count = 0;
         
         filtered.forEach(l => {
@@ -1027,13 +1051,33 @@
             let margem = (l.margem || 0) * 100;
             let formaDisplay = getFormaPagamentoDisplay(l.formaPrincipal || 'Cartão', l.formaSecundaria || '');
             let parcelasDisplay = getParcelasDisplay(l.parcelasPrincipal || 1, l.parcelasSecundaria || 0);
-            let entradaDisplay = l.entradaInicial ? new Date(l.entradaInicial).toLocaleDateString('pt-BR') : '-';
+            
+            // Data da venda
             let dataVenda = l.dataRef ? new Date(l.dataRef).toLocaleDateString('pt-BR') : '-';
             
-            // REGRA: 1ª PARCELA só aparece se houver parcelamento
+            // Data 1ª parcela
+            let entradaDisplay = l.entradaInicial ? new Date(l.entradaInicial).toLocaleDateString('pt-BR') : '-';
+            if (isPagamentoAVista(l.formaPrincipal, l.formaSecundaria, l.parcelasPrincipal, l.parcelasSecundaria)) {
+                entradaDisplay = '-';
+            }
+            
+            // 1ª PARCELA (só se houver parcelamento)
             let valorPrimeira = '-';
             if (l.parcelasPrincipal > 1 || l.parcelasSecundaria > 0) {
                 valorPrimeira = formatarMoeda(l.valorPrimeiraParcela || 0);
+                somaPrimeiraParcela += (l.valorPrimeiraParcela || 0);
+            }
+            
+            // Cliente e Arquiteto abreviados
+            let clienteAbreviado = encurtarNome(l.cliente);
+            let arquitetoAbreviado = encurtarNome(l.arquiteto) || '-';
+            
+            // IMP+CMV - se for 0, exibe "Produto não informado"
+            let impCmvDisplay = '';
+            if (impCmv === 0 || impCmv <= 0.01) {
+                impCmvDisplay = '<span class="produto-nao-informado">Produto não informado</span>';
+            } else {
+                impCmvDisplay = formatarMoeda(impCmv);
             }
             
             somaVenda += l.venda;
@@ -1046,14 +1090,14 @@
             
             html += `<tr>
                 <td>${dataVenda}</td>
-                <td>${l.cliente}</td>
+                <td>${clienteAbreviado}</td>
                 <td>${formatarMoeda(l.venda)}</td>
-                <td>${l.arquiteto || '-'}</td>
+                <td>${arquitetoAbreviado}</td>
                 <td>${formaDisplay}</td>
                 <td>${parcelasDisplay}</td>
                 <td>${valorPrimeira}</td>
                 <td>${entradaDisplay}</td>
-                <td>${formatarMoeda(impCmv)}</td>
+                <td>${impCmvDisplay}</td>
                 <td>${formatarMoeda(l.variaveis || 0)}</td>
                 <td>${formatarMoeda(admFin)}</td>
                 <td style="font-weight:600;">${formatarMoeda(lucroLiq)}</td>
@@ -1069,7 +1113,7 @@
             <td></td>
             <td></td>
             <td></td>
-            <td></td>
+            <td>${formatarMoeda(somaPrimeiraParcela)}</td>
             <td></td>
             <td>${formatarMoeda(somaImpCmv)}</td>
             <td>${formatarMoeda(somaVar)}</td>
@@ -1202,7 +1246,6 @@
             if(btn.dataset.tab === 'tab2') { atualizarClientesRel(); gerarRelatorioUI(); }
             if(btn.dataset.tab === 'tab3') atualizarDashboardCompleto();
             if(btn.dataset.tab === 'tab5') { 
-                // Restaurar filtros do resumo
                 document.getElementById('resumoMesSelect').value = filtroResumoMes;
                 document.getElementById('resumoArquitetoSelect').value = filtroResumoArquiteto;
                 gerarResumoVendas(); 
