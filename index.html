@@ -136,7 +136,8 @@
     </div>
     <div id="configPanel" style="display: none;">
         <div class="config-panel">
-            <div class="config-item"><label>🔹 Alíquota Simples Nacional</label><input type="number" id="simplesAliquota" step="0.01" value="6.00"> %</div>
+            <div class="config-item"><label>🔹 Alíquota Simples (fallback)</label><input type="number" id="simplesAliquota" step="0.01" value="6.00"> %</div>
+            <div style="font-size:0.7rem; color:#2c5f8a;">Usado quando RBT12 = 0 (primeiras vendas)</div>
         </div>
     </div>
 
@@ -309,6 +310,16 @@
         24: {30: {coef: 0.05678, ret: 26.62}, 60: {coef: 0.05828, ret: 28.51}, 90: {coef: 0.05982, ret: 30.35}}
     };
 
+    // ===== TABELA DO SIMPLES NACIONAL (ANEXO I - COMÉRCIO) =====
+    const tabelaSimples = [
+        { faixa: 1, limite: 180000, aliquota: 4.00, deducao: 0 },
+        { faixa: 2, limite: 360000, aliquota: 7.30, deducao: 5940 },
+        { faixa: 3, limite: 720000, aliquota: 9.50, deducao: 13860 },
+        { faixa: 4, limite: 1800000, aliquota: 10.70, deducao: 22500 },
+        { faixa: 5, limite: 3600000, aliquota: 14.30, deducao: 87300 },
+        { faixa: 6, limite: 4800000, aliquota: 19.00, deducao: 378000 }
+    ];
+
     // ===== FIREBASE CONFIG =====
     const firebaseConfig = {
         apiKey: "AIzaSyBQRnzD2zg2rKOa9XpCsXwFC-oDcnwUdnI",
@@ -369,20 +380,83 @@
         return d.toISOString().slice(0,10);
     }
     
-    function calcularImpostos(venda, regime, aliquotaSimples, tipoPedido, gerarNota) {
+    // ===== NOVA FUNÇÃO: CALCULAR RBT12 (últimos 12 meses, só com nota) =====
+    function calcularRBT12(dataRef, lancamentos) {
+        let dataLimite = new Date(dataRef);
+        dataLimite.setFullYear(dataLimite.getFullYear() - 1);
+        dataLimite.setHours(0, 0, 0, 0);
+        
+        let dataRefObj = new Date(dataRef);
+        dataRefObj.setHours(0, 0, 0, 0);
+        
+        let vendasComNota = lancamentos.filter(l => {
+            let lData = new Date(l.dataRef);
+            lData.setHours(0, 0, 0, 0);
+            return l.gerarNota === 'sim' && 
+                   lData >= dataLimite && 
+                   lData <= dataRefObj &&
+                   l.id !== undefined;
+        });
+        
+        let rbt12 = vendasComNota.reduce((soma, l) => soma + (l.venda || 0), 0);
+        return rbt12;
+    }
+    
+    // ===== NOVA FUNÇÃO: CALCULAR ALÍQUOTA EFETIVA DO SIMPLES =====
+    function calcularAliquotaEfetivaSimples(rbt12) {
+        if (rbt12 === 0) return null;
+        
+        let faixa = tabelaSimples.find(f => rbt12 <= f.limite) || tabelaSimples[tabelaSimples.length - 1];
+        let aliquotaEfetiva = ((rbt12 * faixa.aliquota / 100) - faixa.deducao) / rbt12;
+        return {
+            faixa: faixa.faixa,
+            limite: faixa.limite,
+            aliquotaNominal: faixa.aliquota,
+            deducao: faixa.deducao,
+            aliquotaEfetiva: aliquotaEfetiva
+        };
+    }
+    
+    // ===== FUNÇÃO DE IMPOSTOS ATUALIZADA =====
+    function calcularImpostos(venda, regime, aliquotaSimples, tipoPedido, gerarNota, dataRef, lancamentos, isNovo) {
+        // Se NÃO gerar nota → IMPOSTO ZERADO
         if(gerarNota === 'nao') return { impostoVenda: 0, impostoLucro: 0 };
+        
         if(regime === "Simples") {
+            // Se for lançamento NOVO (isNovo = true), usa cálculo com RBT12
+            if (isNovo) {
+                let rbt12 = calcularRBT12(dataRef, lancamentos);
+                
+                // Se RBT12 = 0, usa fallback (alíquota fixa)
+                if (rbt12 === 0) {
+                    let impV = venda * (aliquotaSimples / 100);
+                    return { impostoVenda: impV, impostoLucro: 0 };
+                }
+                
+                let resultado = calcularAliquotaEfetivaSimples(rbt12);
+                if (resultado) {
+                    let impV = venda * resultado.aliquotaEfetiva;
+                    return { impostoVenda: impV, impostoLucro: 0 };
+                }
+            }
+            
+            // Lançamento antigo ou fallback: usa alíquota fixa
             let impV = venda * (aliquotaSimples / 100);
             return { impostoVenda: impV, impostoLucro: 0 };
         }
+        
+        // Regime Presumido
         let aliquotaVenda = tipoPedido === "OC" ? 0.2165 : 
                            (tipoPedido === "OC/SR" ? 0.1265 : 
                            (tipoPedido === "SR" ? 0.0365 : 0));
-        return { impostoVenda: venda * aliquotaVenda, impostoLucro: venda * 0.0228 };
+        return { 
+            impostoVenda: venda * aliquotaVenda, 
+            impostoLucro: venda * 0.0228 
+        };
     }
     
-    function recalcularCampos(venda, produtoTotal, despFin, regime, aliquotaSimples, possuiRT, tipoPedido, gerarNota) {
-        const { impostoVenda, impostoLucro } = calcularImpostos(venda, regime, aliquotaSimples, tipoPedido, gerarNota);
+    function recalcularCampos(venda, produtoTotal, despFin, regime, aliquotaSimples, possuiRT, tipoPedido, gerarNota, dataRef, lancamentos, isNovo) {
+        const { impostoVenda, impostoLucro } = calcularImpostos(venda, regime, aliquotaSimples, tipoPedido, gerarNota, dataRef, lancamentos, isNovo);
         const custoInformado = produtoTotal > 0;
         const freteEmb = custoInformado ? produtoTotal * 0.1675 : 0;
         const cmv = custoInformado ? produtoTotal + freteEmb : 0;
@@ -397,7 +471,7 @@
         return { 
             impostoVenda, freteEmb, cmv, lucroBruto, percLB, variaveis, 
             custosAdm, ebitda, impostoLucro, lucroLiquido, margem,
-            custoInformado
+            custoInformado, rbt12: isNovo ? calcularRBT12(dataRef, lancamentos) : null
         };
     }
 
@@ -678,14 +752,21 @@
         
         let aliquota = getAliquota();
         let regime = getRegimeByData(data);
-        let calc = recalcularCampos(venda, produtoTotal, despFin, regime, aliquota, possuiRT, tipo, gerarNota);
+        // isNovo = true → usa cálculo com RBT12
+        let calc = recalcularCampos(venda, produtoTotal, despFin, regime, aliquota, possuiRT, tipo, gerarNota, data, lancamentos, true);
         let mes = formatMesAno(data);
         let entradaInicial = getEntradaInicial(data);
         let produtosJSON = JSON.stringify(produtosItens);
+        let rbt12Atual = calcularRBT12(data, lancamentos);
+        let aliquotaInfo = calcularAliquotaEfetivaSimples(rbt12Atual);
+        
         let novo = { 
             dataRef: data, mes, cliente, venda, produto: produtoTotal, produtosItens: produtosJSON, 
             despFin, tipo, possuiRT, gerarNota, arquiteto, formaPrincipal, formaSecundaria, 
             parcelasPrincipal, parcelasSecundaria, valorPrimeiraParcela, entradaInicial, regime, 
+            rbt12: rbt12Atual,
+            aliquotaEfetiva: aliquotaInfo ? aliquotaInfo.aliquotaEfetiva : null,
+            versaoImposto: 'v2',
             ...calc 
         };
         await salvarLancamento(novo);
@@ -697,7 +778,7 @@
         document.getElementById('valorPrimeiraParcelaInput').value = '0,00';
         produtosItens = [];
         renderizarProdutos();
-        showToast("✅ Venda lançada!");
+        showToast("✅ Venda lançada com cálculo RBT12!");
     }
     
     function editarLancamentoCompleto(id) {
@@ -817,15 +898,22 @@
             if(!newData || !newCliente || isNaN(newVenda) || editProdutos.length===0) { alert("Preencha corretamente!"); return; }
             let aliq = getAliquota(); 
             let regime = getRegimeByData(newData);
-            let calc = recalcularCampos(newVenda, produtoTotalEdit, newDesp, regime, aliq, newRT, newTipo, newNota);
+            // isNovo = true para recalcular com RBT12
+            let calc = recalcularCampos(newVenda, produtoTotalEdit, newDesp, regime, aliq, newRT, newTipo, newNota, newData, lancamentos, true);
             let entradaInicial = getEntradaInicial(newData);
             let produtosJSON = JSON.stringify(editProdutos);
+            let rbt12Atual = calcularRBT12(newData, lancamentos);
+            let aliquotaInfo = calcularAliquotaEfetivaSimples(rbt12Atual);
+            
             Object.assign(l, { dataRef: newData, mes: formatMesAno(newData), cliente: newCliente, venda: newVenda, 
                               produto: produtoTotalEdit, produtosItens: produtosJSON, despFin: newDesp, 
                               tipo: newTipo, possuiRT: newRT, gerarNota: newNota, arquiteto: newArquiteto,
                               formaPrincipal: newFormaPrincipal, formaSecundaria: newFormaSecundaria,
                               parcelasPrincipal: newParcelasPrincipal, parcelasSecundaria: newParcelasSecundaria,
-                              valorPrimeiraParcela: newValorPrimeiraParcela, entradaInicial: entradaInicial, regime, ...calc });
+                              valorPrimeiraParcela: newValorPrimeiraParcela, entradaInicial: entradaInicial,
+                              rbt12: rbt12Atual,
+                              aliquotaEfetiva: aliquotaInfo ? aliquotaInfo.aliquotaEfetiva : null,
+                              versaoImposto: 'v2', regime, ...calc });
             await salvarLancamento(l);
             await carregarDados();
             modal.remove(); showToast("✏️ Editado!");
@@ -899,22 +987,40 @@
                              montarTabela(`📊 BRETON - ${exibe} (SEM IMPOSTOS)`, filtered, false);
     }
 
-    // ===== DASHBOARD =====
+    // ===== DASHBOARD (ATUALIZADO COM RBT12) =====
     function atualizarDashboardCompleto() {
         let inicio = document.getElementById('dashMesInicio').value;
         let fim = document.getElementById('dashMesFim').value;
         let comImposto = document.querySelector('input[name="tipoImposto"]:checked').value === 'com';
         let filtered = lancamentos.filter(l=> (!inicio || l.mes>=inicio) && (!fim || l.mes<=fim));
+        
+        // Calcular RBT12 total (considerando TODOS os lançamentos com nota)
+        let dataAtual = new Date().toISOString().slice(0,10);
+        let rbt12Total = calcularRBT12(dataAtual, lancamentos);
+        let aliquotaInfo = calcularAliquotaEfetivaSimples(rbt12Total);
+        
         let totalVenda = filtered.reduce((s,l)=>s+(l.venda||0),0);
         let totalLucro = filtered.reduce((s,l)=>s+(comImposto ? (l.lucroLiquido||0) : (l.venda - l.cmv - ((l.venda-l.despFin)*0.2262*(l.possuiRT==='sim'?1:0.9)) - ((l.venda-l.cmv)*0.1213) - l.despFin)),0);
         let totalCustosAdm = filtered.reduce((s,l)=>s+(comImposto?(l.custosAdm||0):((l.venda-l.cmv)*0.1213)),0);
         let qtd = filtered.length, ticket = qtd?totalVenda/qtd:0, maior = qtd?Math.max(...filtered.map(l=>l.venda)):0;
         let margemMedia = totalVenda?(totalLucro/totalVenda)*100:0;
-        document.getElementById('dashboardCards').innerHTML = `<div class="card"><h4>💰 VENDAS TOTAIS</h4><div class="value">${formatarMoeda(totalVenda)}</div></div>
+        
+        let rbt12Display = rbt12Total > 0 ? formatarMoeda(rbt12Total) : 'Aguardando vendas com nota';
+        let aliquotaDisplay = aliquotaInfo ? (aliquotaInfo.aliquotaEfetiva * 100).toFixed(2) + '%' : '6,00% (fallback)';
+        let faixaDisplay = aliquotaInfo ? `${aliquotaInfo.faixa}ª Faixa` : '1ª Faixa';
+        
+        document.getElementById('dashboardCards').innerHTML = `
+            <div class="card"><h4>💰 VENDAS TOTAIS</h4><div class="value">${formatarMoeda(totalVenda)}</div></div>
             <div class="card"><h4>📈 LUCRO ${comImposto?'LÍQUIDO':'AJUSTADO'}</h4><div class="value">${formatarMoeda(totalLucro)}</div><div class="sub">${margemMedia.toFixed(2)}%</div></div>
             <div class="card"><h4>🏢 CUSTOS ADMIN</h4><div class="value">${formatarMoeda(totalCustosAdm)}</div></div>
             <div class="card"><h4>🎫 TICKET MÉDIO</h4><div class="value">${formatarMoeda(ticket)}</div><div class="sub">${qtd} vendas</div></div>
-            <div class="card"><h4>📊 MAIOR VENDA</h4><div class="value">${formatarMoeda(maior)}</div></div>`;
+            <div class="card"><h4>📊 MAIOR VENDA</h4><div class="value">${formatarMoeda(maior)}</div></div>
+            <div class="card" style="background: linear-gradient(135deg, #0d4a2e, #1a6d3c);">
+                <h4>📊 RBT12 (com nota)</h4>
+                <div class="value">${rbt12Display}</div>
+                <div class="sub">${faixaDisplay} | Alíq. Efetiva: ${aliquotaDisplay}</div>
+            </div>
+        `;
         
         let mesesMap = new Map();
         filtered.forEach(l=>{ if(!mesesMap.has(l.mes)) mesesMap.set(l.mes,{venda:0,lucro:0}); let d=mesesMap.get(l.mes); d.venda+=l.venda; d.lucro+=comImposto?l.lucroLiquido:(l.venda - l.cmv - ((l.venda-l.despFin)*0.2262*(l.possuiRT==='sim'?1:0.9)) - ((l.venda-l.cmv)*0.1213) - l.despFin); });
@@ -1052,27 +1158,21 @@
             let formaDisplay = getFormaPagamentoDisplay(l.formaPrincipal || 'Cartão', l.formaSecundaria || '');
             let parcelasDisplay = getParcelasDisplay(l.parcelasPrincipal || 1, l.parcelasSecundaria || 0);
             
-            // Data da venda
             let dataVenda = l.dataRef ? new Date(l.dataRef).toLocaleDateString('pt-BR') : '-';
-            
-            // Data 1ª parcela
             let entradaDisplay = l.entradaInicial ? new Date(l.entradaInicial).toLocaleDateString('pt-BR') : '-';
             if (isPagamentoAVista(l.formaPrincipal, l.formaSecundaria, l.parcelasPrincipal, l.parcelasSecundaria)) {
                 entradaDisplay = '-';
             }
             
-            // 1ª PARCELA (só se houver parcelamento)
             let valorPrimeira = '-';
             if (l.parcelasPrincipal > 1 || l.parcelasSecundaria > 0) {
                 valorPrimeira = formatarMoeda(l.valorPrimeiraParcela || 0);
                 somaPrimeiraParcela += (l.valorPrimeiraParcela || 0);
             }
             
-            // Cliente e Arquiteto abreviados
             let clienteAbreviado = encurtarNome(l.cliente);
             let arquitetoAbreviado = encurtarNome(l.arquiteto) || '-';
             
-            // IMP+CMV - se for 0, exibe "Produto não informado"
             let impCmvDisplay = '';
             if (impCmv === 0 || impCmv <= 0.01) {
                 impCmvDisplay = '<span class="produto-nao-informado">Produto não informado</span>';
@@ -1207,8 +1307,16 @@
         let rt=document.getElementById('possuiRTInput').value; 
         let tipo=document.getElementById('tipoPedidoInput').value; 
         let nota=document.getElementById('gerarNotaInput').value;
-        let calc=recalcularCampos(venda,produtoTotal,desp,regime,getAliquota(),rt,tipo,nota); 
+        let data = document.getElementById('dataInput').value;
+        let isNovo = true;
+        let calc=recalcularCampos(venda,produtoTotal,desp,regime,getAliquota(),rt,tipo,nota,data,lancamentos,isNovo); 
         document.getElementById('simuladorResultado').innerHTML=`💰 Lucro: ${formatarMoeda(calc.lucroLiquido)} (${(calc.margem*100).toFixed(2)}%)`; 
+        if (calc.rbt12 !== null && calc.rbt12 > 0) {
+            let info = calcularAliquotaEfetivaSimples(calc.rbt12);
+            if (info) {
+                document.getElementById('simuladorResultado').innerHTML += ` | 📊 RBT12: ${formatarMoeda(calc.rbt12)} | Alíq. Efetiva: ${(info.aliquotaEfetiva*100).toFixed(2)}%`;
+            }
+        }
     });
     document.getElementById('toggleConfig').addEventListener('click', () => { document.getElementById('configPanel').style.display = document.getElementById('configPanel').style.display==='none'?'block':'none'; });
     document.getElementById('finForma').addEventListener('change', (e) => { document.getElementById('campoPrazo').style.display = e.target.value==='financiamento'?'block':'none'; });
